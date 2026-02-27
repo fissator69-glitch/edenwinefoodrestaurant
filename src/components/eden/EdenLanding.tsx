@@ -609,8 +609,8 @@ export default function EdenLanding() {
   // Lock body scroll when overlays are open
   useEffect(() => {
     const body = document.body;
-    if (lightboxOpen) body.classList.add("eden-lock");
-    else body.classList.remove("eden-lock");
+    if (lightboxOpen) body.classList.add("eden-lock");else
+    body.classList.remove("eden-lock");
     return () => body.classList.remove("eden-lock");
   }, [lightboxOpen]);
 
@@ -1028,6 +1028,7 @@ export default function EdenLanding() {
 
 
 
+
             // ignore: if sessionStorage is blocked/unavailable, fallback is showing intro again
           }setIntroDone(true);}} />}
       {/* Sfondo continuo: canvas + aurora */}
@@ -1081,9 +1082,8 @@ export default function EdenLanding() {
               <a href="#contatti">Contatti</a>
               
 
-              <a className="header-nav-cta header-nav-cta--wa" href={headerWaUrl} target="_blank" rel="noreferrer">
-                WhatsApp
-              </a>
+              
+
             </nav>
 
             <div className="header-actions" aria-label="Contatti e prenotazioni">
