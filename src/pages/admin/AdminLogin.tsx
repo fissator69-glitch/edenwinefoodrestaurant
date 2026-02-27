@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -67,25 +66,6 @@ export default function AdminLogin() {
     return "Password dimenticata";
   }, [mode]);
 
-  async function onEnterWithGoogle() {
-    setBusy(true);
-    setCanResendConfirm(false);
-
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/admin`,
-        extraParams: { prompt: "select_account" },
-      });
-      if ((result as any)?.error) throw (result as any).error;
-      // se non c'è redirect, la sessione viene impostata dal client lovable;
-      // poi l'utente verrà valutato dal guard su /admin.
-      navigate("/admin", { replace: true });
-    } catch (e: any) {
-      toast({ title: "Errore", description: e?.message ?? "Operazione fallita", variant: "destructive" });
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function resendConfirmation(email?: string) {
     const target = (email ?? lastEmail).trim();
@@ -181,15 +161,6 @@ export default function AdminLogin() {
         </div>
 
         <div className="rounded-lg border bg-card text-card-foreground p-6 space-y-5">
-          <div className="space-y-3">
-            <Button type="button" className="w-full" disabled={busy} onClick={onEnterWithGoogle}>
-              {busy ? "Attendere…" : "Entra"}
-            </Button>
-            <div className="text-xs text-muted-foreground text-center">
-              Accesso con Google (senza email/password da digitare). Se dopo l’accesso non entri in <code className="font-mono">/admin</code>, significa che l’account non ha ancora il ruolo <strong>admin</strong>.
-            </div>
-          </div>
-
           {canResendConfirm && (
             <div className="rounded-md border bg-muted/30 p-4 text-sm flex items-start justify-between gap-3">
               <div>
