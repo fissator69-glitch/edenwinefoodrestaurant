@@ -1,80 +1,81 @@
 
-Obiettivo: completare l’import 1:1 della repo `ryoultimateagent-cyber/pixel-perfect-passer` nel progetto corrente, importando tutti i file mancanti (soprattutto `public/eden/**`) e rimuovendo i file “extra” che non esistono nella repo, così da ottenere parità totale (struttura + contenuti).
+Obiettivo
+- Nella pagina “Locanda Eden” sostituire il titolo testuale “LOCANDA” con l’immagine allegata 1.
+- Nella pagina “Masseria Petrullo” sostituire l’immagine titolo attuale con l’immagine allegata 2.
 
-Stato attuale (da verifica effettuata):
-- La repo GitHub (branch `main`) contiene, oltre ai file root e `src/**`, una cartella `public/eden/**` con immagini, SVG, un MP4 e un HTML.
-- Nel progetto corrente `public/eden/**` NON è presente (attualmente `public/` contiene solo `favicon.ico`, `placeholder.svg`, `robots.txt`).
-- Nel progetto corrente esistono anche file “extra” non presenti nella repo (esempi tipici osservati): `bun.lock`, `tsconfig.*.tsbuildinfo`, `src/tailwind.config.lov.json` (e potenzialmente altri). Hai confermato che vuoi “Cancellare extra”.
+Contesto attuale (da codice)
+- Locanda: `src/pages/LocandaEden.tsx` renderizza:
+  - `<h1 id="locanda-hero-title" className="locanda-title">LOCANDA</h1>`
+- Masseria: `src/pages/MasseriaPetrullo.tsx` usa già un titolo-immagine:
+  - `import masseriaTitle from "@/assets/masseria-title.png";`
+  - `<img className="masseria-title-image" src={masseriaTitle} ... />`
 
-Fonte di verità per il 1:1:
-- Userò l’albero file ufficiale della repo (Git tree API già ottenuto) come lista canonica di path.
-- Per ogni file, il contenuto da copiare sarà esattamente quello del branch `main` (raw GitHub).
+Asset forniti dall’utente
+- Allegato 1 (LOCANDA): `user-uploads://Gemini_Generated_Image_wmdz0cwmdz0cwmdz_2_1.png`
+- Allegato 2 (Masseria Petrullo): `user-uploads://Gemini_Generated_Image_5pbdii5pbdii5pbd_2_1.png`
 
-Cosa verrà importato (mancante) — focus su `public/eden/**`:
-1) Creazione struttura cartelle in `public/eden/` e `public/eden/intro/`
-2) Import binari e file statici elencati nella repo:
-   - `public/eden/eden-hero-logo.png`
-   - `public/eden/eden-logo.jpg`
-   - `public/eden/intro/black_hole_remix.mp4`
-   - `public/eden/intro/eden-intro-logo.png` (nota: nella repo risulta identico come contenuto a `eden-hero-logo.png`, ma va comunque presente come file separato con quel path)
-   - `public/eden/leaf-source.png`
-   - `public/eden/leaf.png`
-   - `public/eden/nuovo_1-2.html`
-   - `public/eden/petal-pink-source.svg`
-   - `public/eden/petal-yellow-source.svg`
-   - `public/eden/tulip-leaf-source.svg`
-   - `public/eden/wheat-leaf-source.svg`
-   - `public/eden/wheat-spike-gold-source.svg`
-   - `public/eden/wheat-spike-green-source.svg`
+Scelte tecniche (coerenti con progetto)
+- Mettere le immagini in `src/assets/` e importarle nei componenti (pattern già usato per `masseria-title.png`).
+- Mantenere accessibilità:
+  - Tenere un testo “screen-reader only” (sr-only) dentro l’h1 (o un elemento equivalente) per non perdere semantica e SEO.
+  - L’immagine avrà `alt` coerente.
 
-Come verrà eseguita la copia (in blocchi, mantenendo 1:1):
-- Importerò i file in blocchi da 5–10 file per messaggio/commit operativo, dando priorità ai binari critici per il rendering:
-  1) MP4 + loghi (per evitare errori/mancati load nell’intro/hero)
-  2) PNG/JPG grandi (leaf, ecc.)
-  3) SVG
-  4) HTML
-- Per ogni file userò la versione raw del branch `main` (nessuna modifica del contenuto, nessuna “ottimizzazione”, nessuna ricompressione).
-- Dopo ogni blocco, controllerò che i path usati in `src/**` (ad es. `/eden/...`) risolvano correttamente in preview (verifica di rete e/o console se necessario).
+Implementazione (step-by-step)
+1) Copia degli allegati nel progetto
+   - Copiare Allegato 1 in: `src/assets/locanda-title.png`
+   - Copiare Allegato 2 in: `src/assets/masseria-title.png` (sovrascrivere l’attuale, così “sostituisce l’immagine che sta” senza cambiare il markup)
+   Note: per il 1:1 con la repo originale, questa modifica introduce una differenza volontaria nei file; è esattamente ciò che stai richiedendo (sostituzione titoli).
 
-Rimozione file extra (richiesta “Cancellare extra”):
-1) Genererò l’elenco dei file presenti nel progetto corrente (root + `src/**` + `public/**`).
-2) Confronterò l’elenco locale con l’elenco canonico della repo.
-3) Cancellerò tutti i file che sono presenti localmente ma NON esistono nella repo, includendo (salvo ulteriori scoperte):
-   - `bun.lock` (la repo ha `bun.lockb`, non `bun.lock`)
-   - `tsconfig.app.tsbuildinfo`
-   - `tsconfig.node.tsbuildinfo`
-   - `src/tailwind.config.lov.json`
-   - eventuali altri file generati/aggiunti che non compaiono nella tree della repo
-4) Nota: `node_modules/` e `.git/` sono presenti localmente ma non sono parte del repo “sorgente” in senso distributivo; tuttavia, essendo artefatti dell’ambiente, li tratterò separatamente:
-   - Non sono file “di prodotto” e non impattano il 1:1 del codice sorgente; se la piattaforma consente la rimozione senza effetti collaterali, li lascerò gestiti dal sistema (tipicamente non vengono versionati comunque). L’obiettivo 1:1 è allineare i file del progetto versionabili.
+2) Aggiornare “Locanda Eden” per usare l’immagine come titolo
+   File: `src/pages/LocandaEden.tsx`
+   - Aggiungere import:
+     - `import locandaTitle from "@/assets/locanda-title.png";`
+   - Sostituire l’h1:
+     - Da testo “LOCANDA”
+     - A una variante “title image” simile a Masseria:
+       - `h1` mantiene `id="locanda-hero-title"` e classe `locanda-title` (così non rompiamo lo styling esistente se serve)
+       - Dentro:
+         - `<span className="sr-only">Locanda</span>`
+         - `<img className="locanda-title-image" src={locandaTitle} alt="Locanda" loading="eager" decoding="async" />`
 
-Verifica parità (post-import):
-- Struttura:
-  - `public/` deve includere `eden/**` oltre ai file standard.
-  - `src/**` e root devono combaciare con la lista repo.
-- Funzionale/UI:
-  - La home `/` deve caricare senza 404 di asset.
-  - Intro video: il file MP4 deve partire (muted/autoplay) e il logo deve apparire.
-  - Le rotte `/locanda-eden` e `/masseria-petrullo` devono renderizzare con assets corretti e senza richieste fallite.
-- Debug:
-  - Controllo console per errori asset missing o import.
-  - Controllo network per status 404/500 sugli asset sotto `/eden/...`.
+3) Aggiungere/adeguare CSS per la resa dell’immagine “Locanda”
+   File: `src/styles/eden.css`
+   - Introdurre stile per `.locanda-title-image` (e, se necessario, una wrapper class tipo `.locanda-title--image` per allinearsi allo schema già usato su Masseria).
+   - Obiettivo styling:
+     - L’immagine deve comportarsi come un titolo: centrata, responsive, con max-width controllato.
+     - Esempio di regole (verranno adattate ai valori già presenti nel CSS):
+       - `display:block; margin-inline:auto; height:auto;`
+       - `width: min(780px, 92vw);` (o valore analogo)
+       - Eventuale `filter: drop-shadow(...)` se il titolo attuale aveva glow via CSS (valutato in base alle classi esistenti di Locanda).
 
-Sequenza operativa (implementazione in default mode dopo approvazione di questo piano):
-1) Import blocco 1: `public/eden/intro/black_hole_remix.mp4`, `public/eden/eden-hero-logo.png`, `public/eden/intro/eden-intro-logo.png`, `public/eden/eden-logo.jpg`
-2) Import blocco 2: `public/eden/leaf-source.png`, `public/eden/leaf.png`
-3) Import blocco 3: tutti gli SVG in `public/eden/*.svg`
-4) Import blocco 4: `public/eden/nuovo_1-2.html`
-5) Sweep di parità:
-   - List & delete extra files non presenti nella repo
-   - Ultimo controllo dei path e della build/preview
+4) “Masseria Petrullo”: sostituzione immagine
+   - Approccio più pulito e con meno rischio UI: mantenere il componente identico e sostituire SOLO il file asset importato.
+   - Copiando l’allegato 2 in `src/assets/masseria-title.png`:
+     - Non serve cambiare `src/pages/MasseriaPetrullo.tsx`
+     - La pagina inizierà automaticamente a mostrare il nuovo titolo.
 
-Rischi/edge cases previsti (e mitigazioni):
-- File binari grandi: l’MP4 (~3.4MB) rientra nei limiti, ma va importato con attenzione evitando qualunque trasformazione.
-- Duplicazione contenuto (logo identico in due path): non farò dedup/symlink; creerò entrambi i file come in repo.
-- Parità “non sbagliare una virgola”: per i file testuali userò copia raw; per i binari userò download diretto senza conversioni.
+5) Verifiche (manuali consigliate)
+   - Aprire `/locanda-eden`:
+     - verificare che il testo “LOCANDA” non sia più visibile e che l’immagine appaia ben centrata, senza deformazioni.
+     - verificare responsive (mobile + desktop).
+   - Aprire `/masseria-petrullo`:
+     - verificare che il titolo immagine sia quello nuovo.
+   - Controllare che non ci siano errori in console (import asset) e nessun 404 in Network per i nuovi PNG.
 
-Criteri di completamento:
-- `public/eden/**` presente e completo come in repo.
-- Nessun file “extra” versionabile rimasto nel progetto rispetto alla tree della repo.
-- Nessun errore console e nessun 404 sugli asset durante la navigazione principale.
+Rischi / Edge cases
+- Le immagini caricate hanno glow e sfondo trasparente: se sul layout attuale risultano troppo grandi/piccole, basterà ritoccare `width/max-width` in `.locanda-title-image` senza toccare altro.
+- Se `.locanda-title` applica `letter-spacing/text-transform` o altre proprietà testuali che impattano il layout, potremmo aggiungere una classe “--image” per neutralizzare effetti (es. `line-height`) solo quando il titolo è un’immagine.
+
+File che verranno coinvolti
+- Nuovi/aggiornati asset:
+  - `src/assets/locanda-title.png` (nuovo)
+  - `src/assets/masseria-title.png` (sostituzione dell’esistente)
+- Modifiche codice:
+  - `src/pages/LocandaEden.tsx`
+- Modifiche stile:
+  - `src/styles/eden.css`
+
+Criteri di completamento
+- In `/locanda-eden` il titolo è l’immagine allegato 1, e il testo “LOCANDA” non è più visibile (resta solo per screen reader).
+- In `/masseria-petrullo` il titolo immagine è quello dell’allegato 2.
+- Nessun errore console, nessun 404 degli asset.
