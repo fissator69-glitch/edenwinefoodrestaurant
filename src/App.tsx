@@ -8,6 +8,9 @@ import Index from "./pages/Index";
 import LocandaEden from "./pages/LocandaEden";
 import MasseriaPetrullo from "./pages/MasseriaPetrullo";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ProtectedAdminRoute from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -17,15 +20,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <EdenRouteTransitionProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/locanda-eden" element={<LocandaEden />} />
-            <Route path="/masseria-petrullo" element={<MasseriaPetrullo />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </EdenRouteTransitionProvider>
+          <EdenRouteTransitionProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/locanda-eden" element={<LocandaEden />} />
+              <Route path="/masseria-petrullo" element={<MasseriaPetrullo />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedAdminRoute>
+                    <AdminDashboard />
+                  </ProtectedAdminRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </EdenRouteTransitionProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

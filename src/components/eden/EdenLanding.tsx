@@ -6,8 +6,8 @@ import EdenIntroOverlay from "./EdenIntroOverlay";
 import EdenTransitionLink from "./EdenTransitionLink";
 
 import headerLogo from "@/assets/eden-header-logo.png";
-import footerLogo from "@/assets/eden-footer-logo.png";
 import edenAdelfiaWindow from "@/assets/eden-adelfia-window.jpeg";
+import EdenFooter from "@/components/eden/EdenFooter";
 
 type EdenLeafStatus = "loading" | "loaded" | "error" | "timeout";
 
@@ -564,8 +564,7 @@ export default function EdenLanding() {
 
   const [miniToast, setMiniToast] = useState<string | null>(null);
 
-  const [policyOpen, setPolicyOpen] = useState(false);
-  const lastPolicyTriggerRef = useRef<HTMLElement | null>(null);
+  // Privacy modal moved to <EdenFooter /> (shared across pages)
 
   const eventFormRef = useRef<HTMLFormElement | null>(null);
 
@@ -610,25 +609,21 @@ export default function EdenLanding() {
   // Lock body scroll when overlays are open
   useEffect(() => {
     const body = document.body;
-    if (lightboxOpen || policyOpen) body.classList.add("eden-lock");else
-    body.classList.remove("eden-lock");
+    if (lightboxOpen) body.classList.add("eden-lock");
+    else body.classList.remove("eden-lock");
     return () => body.classList.remove("eden-lock");
-  }, [lightboxOpen, policyOpen]);
+  }, [lightboxOpen]);
 
   // ESC to close overlays
   useEffect(() => {
-    if (!lightboxOpen && !policyOpen) return;
+    if (!lightboxOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (policyOpen) {
-        setPolicyOpen(false);
-        window.setTimeout(() => lastPolicyTriggerRef.current?.focus(), 0);
-      }
-      if (lightboxOpen) setLightboxOpen(false);
+      setLightboxOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [lightboxOpen, policyOpen]);
+  }, [lightboxOpen]);
 
   // Avvia pannello "terra" quando la sezione cucina entra in vista (1:1)
   useEffect(() => {
@@ -1803,129 +1798,8 @@ export default function EdenLanding() {
             null}
           </section>
 
-          {/* BLOCCO 8 · FOOTER (grid + legal + policy modal) */}
-          <footer className="footer-premium">
-            <div className="footer-shell">
-              <div className="f-grid">
-                <div className="f-col">
-                  <img className="f-logo" src={footerLogo} alt="EDEN food.wine.restaurant" loading="lazy" />
-                  <div className="f-brand">EDEN</div>
-                  <p className="f-desc">Food · Wine · Restaurant. Un Eden contemporaneo nel cuore della Puglia.</p>
-                </div>
-
-                <div className="f-col">
-                  <div className="f-col-title">Sezioni</div>
-                  <div className="f-links f-links-col">
-                    <a href="#eden">L'esperienza</a>
-                    <a href="#cucina">Cucina</a>
-                    <a href="#gallery">Galleria</a>
-                    <a href="#eventi">Eventi</a>
-                    <a href="#recensioni">Recensioni</a>
-                    <a href="#contatti">Contatti</a>
-                  </div>
-                </div>
-
-                <div className="f-col">
-                  <div className="f-col-title">Contatti</div>
-                  <div className="f-links f-links-col">
-                    <a href="tel:+390805248160">080 524 8160</a>
-                    <a href="https://wa.me/393497152524" target="_blank" rel="noreferrer">
-                      WhatsApp
-                    </a>
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=Via%20Santa%20Maria%20della%20Stella%2066%20Adelfia"
-                      target="_blank"
-                      rel="noreferrer">
-
-                      Indicazioni
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <div className="f-legal">
-                <div>
-                  &copy; <span id="current-year">{year}</span> EDEN food.wine.restaurant. Tutti i diritti riservati.
-                </div>
-                <div className="f-legal-links">
-                  <button
-                    type="button"
-                    className="f-legal-btn"
-                    onClick={(e) => {
-                      lastPolicyTriggerRef.current = e.currentTarget;
-                      setPolicyOpen(true);
-                    }}>
-
-                    Privacy &amp; Cookie
-                  </button>
-                  <span className="f-legal-sep" aria-hidden="true">
-                    ·
-                  </span>
-                  <span>
-                    Design by <strong>Giovanni Macina</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </footer>
-
-          {/* FAB DOCK */}
-          <div className="fab-dock" aria-label="Azioni rapide">
-            <a className="fab-btn" href="https://wa.me/393497152524" target="_blank" rel="noreferrer">
-              WhatsApp
-            </a>
-            <a className="fab-btn" href="tel:+390805248160">
-              Chiama
-            </a>
-            <a
-              className="fab-btn fab-btn-primary"
-              href="https://www.google.com/maps/search/?api=1&query=Via%20Santa%20Maria%20della%20Stella%2066%20Adelfia"
-              target="_blank"
-              rel="noreferrer">
-
-              Indicazioni
-            </a>
-          </div>
-
-          {/* POLICY MODAL */}
-          <div
-            className={`policy-modal ${policyOpen ? "open" : ""}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Privacy e Cookie"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) {
-                setPolicyOpen(false);
-                window.setTimeout(() => lastPolicyTriggerRef.current?.focus(), 0);
-              }
-            }}>
-
-            <div className="policy-card">
-              <div className="policy-head">
-                <div>
-                  <div className="policy-kicker">Policy</div>
-                  <div className="policy-title">Privacy &amp; Cookie</div>
-                </div>
-                <button
-                  type="button"
-                  className="policy-close"
-                  onClick={() => {
-                    setPolicyOpen(false);
-                    window.setTimeout(() => lastPolicyTriggerRef.current?.focus(), 0);
-                  }}
-                  aria-label="Chiudi">
-
-                  ×
-                </button>
-              </div>
-              <div className="policy-body">
-                <p>
-                  Contenuto placeholder (come nel sorgente GitHub). Qui potrai inserire testo completo di Privacy Policy,
-                  Cookie Policy e dettagli legali.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* BLOCCO 8 · FOOTER (globale, DB-driven) */}
+          <EdenFooter mode="home" />
         </main>
       </div>
     </div>);
