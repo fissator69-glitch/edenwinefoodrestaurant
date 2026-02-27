@@ -1,175 +1,163 @@
 
-Obiettivo (come l’hai chiesto)
-- La pagina **/admin** deve essere “catalogata” e non un mucchio di roba:
-  - **Media** separati per: **EDEN / Locanda / Masseria Petrullo**
-  - **Menù** separati per pagina:
-    - Locanda: menù + vini (già esiste la struttura)
-    - EDEN: i **Percorsi cucina (Terra/Mare/Scoperta)** come quelli attuali in home
-  - La **Gallery EDEN** deve diventare modificabile da admin e usare i media caricati.
+Contesto (dove siamo)
+- Mi confermi che **Leaked Password Protection** è già attivo: perfetto, quindi riparto con il refactor di **/admin** e l’organizzazione **Media per pagina** (EDEN/Locanda/Masseria) + editor EDEN (Percorsi + Gallery) e Masseria.
+- Nel database la colonna `media_assets.page` risulta già presente (nullable) e le tabelle `page_content` e `media_assets` hanno RLS corretta (scrivono solo admin, lettura pubblica).
 
-Stato attuale (problema reale)
-- `AdminDashboard.tsx` oggi mostra tab “Contatti/Privacy/Footer/Social/Media/Utenti” ma:
-  - non usa gli editor già presenti (es. `AdminLocandaEditor`, `AdminLinkCtaEditor`)
-  - “Media” è solo upload + lista grezza, senza categorie per pagina
-- La pagina **Locanda** e **Masseria** già leggono contenuti da `page_content` (backend) + `media_assets` (per immagini via assetId)
-- La home **EDEN** (`EdenLanding.tsx`) ha:
-  - **menu percorsi** hardcoded (`CUCINA_PERCORSI`)
-  - **galleryItems** hardcoded (link pexels)
-  quindi non sono gestibili da admin.
+Obiettivo della prossima implementazione (in codice)
+1) /admin “catalogato” in tab/pagine chiare:
+   - Sito (Globale): contatti/privacy/footer/social + Link&CTA (editor già esistente)
+   - EDEN (Home): Percorsi cucina + Gallery EDEN (nuovi editor)
+   - Locanda: usare `AdminLocandaEditor` (già esistente)
+   - Masseria: nuovo editor dedicato (hero/gallery/note)
+   - Media: libreria con filtro `page` + assegnazione pagina + upload con scelta pagina
+   - Utenti: lasciare la gestione utenti già presente
 
-Decisioni già approvate (da te)
-- Media: usare **colonna dedicata `page`** (non tag)
-- Menù EDEN: rendere editabili i **Percorsi cucina attuali**
-- Gallery EDEN: **sì**, renderla editabile da admin
+2) MediaPicker “intelligente”
+- `MediaPickerDialog` deve poter filtrare i media per `page` (di default mostra quelli della pagina corrente, con toggle “Mostra tutti”).
 
----
-
-Cosa cambierò (design “ordinato”)
-A) Backend / Database (strutturato, non improvvisato)
-1) Aggiungere `page` a `media_assets`
-- Nuova colonna: `media_assets.page`
-- Valori consentiti: `eden | locanda | masseria`
-- Strategia sicura per non rompere i media già esistenti:
-  - Step 1: colonna **nullable** con default `null` (o “eden” solo se vuoi forzare; io consiglio `null`)
-  - Step 2: UI admin per assegnare la pagina ai media “Non assegnati”
-  - Step 3 (opzionale, quando hai finito di catalogare): rendere `page` **NOT NULL** e magari default
-
-Nota: userò una migrazione schema (tool migrazioni) perché è una modifica strutturale.
-
-2) Contenuti EDEN nel backend (senza nuove tabelle, usando quelle già esistenti)
-- Userò `page_content` che già c’è e ha RLS corrette:
-  - `page = "home"`
-  - `section = "eden_menu"` per i percorsi cucina
-  - `section = "eden_gallery"` per la galleria EDEN
-- Questo evita di inventare un nuovo schema: è tutto già pronto e protetto.
+3) Home EDEN collegata a backend (con fallback)
+- Spostare:
+  - Percorsi cucina: in `page_content` con `page="home"`, `section="eden_menu"`
+  - Gallery EDEN: in `page_content` con `page="home"`, `section="eden_gallery"`
+- `EdenLanding.tsx` leggerà dal backend se presente, altrimenti continuerà ad usare gli hardcoded attuali (fallback), così non rompiamo nulla.
 
 ---
 
-B) Frontend / Admin: nuova struttura “a pagine”, chiara
-Trasformo la dashboard admin in un layout coerente:
+Esplorazione rapida del codice attuale (cosa cambia)
+- `src/pages/admin/AdminDashboard.tsx` oggi contiene tutto “misto” (contatti/privacy/footer/social/media/users) e l’upload media inserisce solo `{bucket,path,alt,tags}` senza `page`.
+- `src/hooks/content/useMediaAssets.ts` non seleziona `page` (quindi in UI non possiamo filtrare/assegnare bene).
+- `src/components/admin/MediaPickerDialog.tsx` oggi filtra solo con search string; nessun filtro per pagina.
+- `AdminLocandaEditor.tsx` è già fatto bene e usa `usePageBlocks("locanda")` + `MediaPickerDialog`.
+- Le pagine `LocandaEden.tsx` e `MasseriaPetrullo.tsx` già leggono `page_content` e risolvono immagini via `assetId` con `resolveMediaRef`.
+- `EdenLanding.tsx` ha `CUCINA_PERCORSI` hardcoded e `galleryItems` hardcoded (pexels): dobbiamo aggiungere lettura da `page_content` + media assets.
 
-1) Nuova navigazione Admin (ordinata)
-- Tab principali:
-  - **Sito (Globale)**: contatti, privacy, footer, social, CTA/link (qui metto `AdminLinkCtaEditor`)
-  - **EDEN (Home)**: editor per
-    - Percorsi cucina (Terra/Mare/Scoperta)
-    - Gallery EDEN
-  - **Locanda**: usa `AdminLocandaEditor` (già completo: hero/menu/vini/gallery)
-  - **Masseria Petrullo**: nuovo editor dedicato (hero/gallery/note)
-  - **Media**: libreria media con filtri e gestione per pagina (eden/locanda/masseria + non assegnati)
-  - **Utenti**: resta com’è
+---
 
-2) Media Library “come si deve”
-- Dentro tab Media:
-  - filtro per pagina: **EDEN / Locanda / Masseria / Non assegnati**
-  - card con anteprima immagine + path + pulsante:
-    - “Assegna pagina” (select eden/locanda/masseria)
-    - (facoltativo) alt + tag testuali
+Progettazione dati (concreto)
+A) media_assets
+- Useremo `media_assets.page` con valori:
+  - `"eden" | "locanda" | "masseria" | null`
+- `null` = “Non assegnati” (utile per i media già caricati)
+
+B) page_content (EDEN)
+- `page="home"`
+- `section="eden_menu"` con struttura tipo:
+  ```ts
+  { percorsi: Array<{
+      key: "terra" | "mare" | "scoperta",
+      label: string,
+      title: string,
+      price: number,
+      priceExtra?: string,
+      sections: Array<{ title: string, items?: string[] }>,
+      notes?: Array<{ label: string, items?: string[] }>
+    }> }
+  ```
+- `section="eden_gallery"` con struttura tipo:
+  ```ts
+  { items: Array<{
+      assetId?: string,
+      src?: string,
+      category: "food" | "location" | "events",
+      sizeClass?: "item-large" | "item-wide" | "item-tall",
+      alt: string,
+      tag: string,
+      title: string
+  }> }
+  ```
+
+---
+
+Cambiamenti pianificati (sequenza di implementazione)
+1) Hook + tipizzazione Media (base per tutto)
+- Aggiornare `useMediaAssets.ts`:
+  - estendere `MediaAsset` con `page?: string | null`
+  - includere `page` nella select: `select("id,bucket,path,alt,tags,created_at,page")`
+- Questo sblocca subito: filtro per pagina, assegnazione pagina, e MediaPicker filtrabile.
+
+2) MediaPickerDialog: filtro per `page` + toggle “Mostra tutti”
+- Estendere props di `MediaPickerDialog`:
+  - `pageFilter?: "eden" | "locanda" | "masseria" | null` (opzionale)
+  - `showAllToggle?: boolean` (default true)
+- Logica:
+  - se `pageFilter` è passato e “Mostra tutti” è OFF:
+    - mostra solo asset con `asset.page === pageFilter`
+  - search continua a funzionare come ora (si applica dopo il filtro pagina).
+
+3) AdminDashboard: nuova “catalogazione” tab
+- Rifattorizzare `AdminDashboard.tsx` in tab principali:
+  - `site` (Globale): contatti/privacy/footer/social + embed `AdminLinkCtaEditor`
+  - `eden`: embed nuovo `AdminEdenEditor`
+  - `locanda`: embed `AdminLocandaEditor`
+  - `masseria`: embed nuovo `AdminMasseriaEditor`
+  - `media`: nuova libreria media (vedi step 4)
+  - `users`: mantenere sezione utenti (quasi invariata)
+- Obiettivo UX: l’admin apre e capisce dove andare in 3 secondi.
+
+4) Tab “Media”: libreria vera
+- Aggiungere filtro select: EDEN / Locanda / Masseria / Non assegnati / Tutti
+- Mostrare cards con:
+  - preview immagine (usando `publicUrl(bucket, path)`)
+  - bucket/path
+  - select “Pagina” per cambiare `media_assets.page` con update immediato
 - Upload:
-  - prima di caricare scegli la pagina (eden/locanda/masseria)
-  - inserisco nel DB `media_assets.page = <pagina>` al momento dell’insert
-- Miglioria essenziale:
-  - `MediaPickerDialog` (quello che usi per scegliere immagini nelle gallery) verrà aggiornato per supportare un filtro:
-    - quando sei in editor Locanda, ti fa vedere di default **solo media Locanda**
-    - stesso per Masseria e EDEN
-    - toggle “Mostra tutti” se vuoi pescare da altre pagine
+  - prima scegli pagina (eden/locanda/masseria) o “non assegnata”
+  - dopo upload in storage, l’insert su `media_assets` includerà `page`
+- (Opzionale ma consigliato) campo alt editabile in-place.
 
----
+5) Nuovo AdminEdenEditor (Percorsi + Gallery)
+- Creare `src/components/admin/AdminEdenEditor.tsx`:
+  - Legge `usePageBlocks("home")` e `useMediaAssets()`
+  - Ha 2 sotto-tab:
+    - “Percorsi cucina” (Terra/Mare/Scoperta) con UI edit (reorder/add/remove) simile allo stile già usato in `AdminLocandaEditor`
+    - “Gallery” con lista items + reorder + bottone “Scegli immagine” che apre `MediaPickerDialog` con `pageFilter="eden"`
+  - Salvataggio:
+    - `upsertSingletonPageSection("home","eden_menu", ...)`
+    - `upsertSingletonPageSection("home","eden_gallery", ...)`
+  - Invalidazione react-query su `["page_content","home"]`
 
-C) Editor EDEN (Home): percorsi cucina + galleria editabile
-1) EDEN menu percorsi
-- Creo `AdminEdenEditor.tsx` con una UI simile a quella della Locanda:
-  - Tab per: **Terra / Mare / Scoperta**
-  - Per ogni percorso:
-    - label/titolo
-    - prezzo (+ eventuale priceExtra)
-    - sezioni (reorder + add/remove)
-    - items delle sezioni (add/remove)
-    - note (add/remove)
-- Salvataggio in `page_content`:
-  - upsert “robusto” come già fatto in `AdminLocandaEditor` (delete+insert per (page,section))
+6) Nuovo AdminMasseriaEditor
+- Creare `src/components/admin/AdminMasseriaEditor.tsx`:
+  - Simile a Locanda editor, ma con sezioni:
+    - hero (descrizione)
+    - gallery (polaroid items con `assetId` e tiltClass/caption/alt)
+    - note (testo)
+  - MediaPicker filtrato `pageFilter="masseria"`
+  - Salvataggio su `page="masseria"` sections `hero/gallery/note`
 
-2) EDEN gallery
-- Sposto la struttura della gallery in `page_content` section `eden_gallery`
-- Nuovo modello dati (compatibile con quello attuale ma migliorato):
-  - ogni item può avere:
-    - `assetId` (preferito, da Media Library)
-    - `src` (fallback URL)
-    - `category` (food/location/events)
-    - `sizeClass` (item-large / item-wide / item-tall)
-    - `alt`, `tag`, `title`
-- Nell’editor admin:
-  - lista items + reorder
-  - selezione immagine tramite `MediaPickerDialog` filtrato su **page=eden**
-  - preview grid come nella home, così vedi subito se “viene bene”
-
-3) Modifica `EdenLanding.tsx` per leggere dal backend
-- Aggiungo:
+7) EdenLanding.tsx: leggere `eden_menu` + `eden_gallery` dal backend con fallback
+- Integrare:
   - `usePageBlocks("home")`
-  - `useMediaAssets()`
-  - `assetsById` + `resolveMediaRef` per le immagini di gallery (come già fai in Locanda/Masseria)
-- Se i contenuti non esistono ancora nel backend:
-  - fallback automatico all’attuale `CUCINA_PERCORSI` e `galleryItems` (quindi non si rompe nulla)
+  - `useMediaAssets()` + `assetsById`
+  - `pickSection` per `eden_menu` e `eden_gallery`
+- Collegare:
+  - Percorsi cucina: se backend presente, usare quelli; altrimenti usare `CUCINA_PERCORSI` attuale
+  - Gallery: se backend presente, usare items dal backend; altrimenti usare `galleryItems` attuale
+- Per la gallery, quando un item ha `assetId`, risolvere con `resolveMediaRef` (come già in Locanda/Masseria), altrimenti usare `src`.
 
 ---
 
-D) Editor Masseria (nuovo, coerente)
-- Creo `AdminMasseriaEditor.tsx`:
-  - hero (descrizione)
-  - gallery (polaroid items con `assetId` o `src`)
-  - note (testo)
-  - preview rapida
-- Salva su `page_content` (page=masseria, section=hero/gallery/note) come già fa Locanda.
+Rischi/attenzioni (per non rompere l’app)
+- Retrocompatibilità: EdenLanding deve rimanere ok anche senza dati in `page_content` (fallback).
+- Media già caricati: essendo `page` nullable, appariranno in “Non assegnati” finché non li classifichi.
+- Performance: evitare di renderizzare 1000 preview; nel tab media manterrò paginazione semplice o un `.slice(0, N)` con “Carica altro” (decidiamo in implementazione in base a quanti asset hai).
 
 ---
 
-File coinvolti (indicativo)
-Database
-- Migrazione: `alter table public.media_assets add column page ...` (+ tipo enum o testo con vincoli)
-
-Admin / UI
-- `src/pages/admin/AdminDashboard.tsx` (ristrutturazione tab e inserimento editor)
-- `src/components/admin/AdminLocandaEditor.tsx` (solo per integrare picker filtrato, se serve)
-- `src/components/admin/MediaPickerDialog.tsx` (aggiunta filtro per `page` e toggle “Mostra tutti”)
-- Nuovi:
-  - `src/components/admin/AdminEdenEditor.tsx`
-  - `src/components/admin/AdminMasseriaEditor.tsx`
-
-Frontend EDEN
-- `src/components/eden/EdenLanding.tsx` (menu percorsi + gallery dal backend con fallback)
-
-Hooks (se utile, per pulizia)
-- `src/hooks/content/usePageContent.ts` (già ok)
-- `src/hooks/content/useMediaAssets.ts` (aggiungo selezione della colonna `page` + tipo aggiornato)
+Cosa mi serve da te (solo se necessario)
+Niente di bloccante. Al massimo, durante l’implementazione potrei chiederti una preferenza minima:
+- Nel tab Media: vuoi default filtro su “EDEN” oppure “Tutti”?
 
 ---
 
-Edge cases / “niente prove a cazzo”
-- Non rompo nulla “al buio”:
-  - EdenLanding continuerà a funzionare anche se nel backend non c’è nulla (fallback)
-  - Media già caricati non spariscono: iniziano come “Non assegnati” finché non li categorizzi
-- Sicurezza invariata:
-  - scrittura solo admin (RLS già presente)
-  - lettura pubblica dove già prevista (media/page_content/site_settings ecc.)
-
----
-
-Checklist di verifica (che farai tu, ma guidata e chiara)
-1) Vai su /admin:
-- Vedi tab “Sito / EDEN / Locanda / Masseria / Media / Utenti”
+Verifica end-to-end (dopo implementazione)
+1) /admin:
+- Vedi tab: Sito / EDEN / Locanda / Masseria / Media / Utenti
 2) Media:
-- Carichi una foto scegliendo “Locanda” → poi la vedi solo nel filtro Locanda
-3) Locanda editor:
-- In “Scegli da Media” vedi di default solo media locanda
+- Upload scegliendo pagina “Locanda” → in lista con filtro Locanda lo vedi
+- Cambi “Pagina” su un asset → sparisce/compare correttamente nei filtri
+3) Locanda/Masseria editor:
+- In “Scegli immagine” vedi di default media della stessa pagina (toggle “Mostra tutti” funziona)
 4) EDEN editor:
-- Modifichi un testo/voce di un percorso → Salva → ricarichi home → vedi cambiamento
-- Modifichi gallery (scegli un asset) → Salva → home aggiornata
-5) Masseria editor:
-- Assegni immagini polaroid via Media → Salva → pagina masseria aggiornata
-
-Se approvi questo piano, nel prossimo step implemento:
-- migrazione DB per `media_assets.page`
-- refactor AdminDashboard (layout “catalogato”)
-- editor EDEN + editor Masseria
-- EdenLanding collegata a backend con fallback
-- MediaPickerDialog filtrato per pagina
+- Cambi una voce Percorso → Salva → refresh home → cambio visibile
+- Cambi gallery scegliendo asset → Salva → home mostra la nuova immagine
