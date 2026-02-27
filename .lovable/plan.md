@@ -1,103 +1,110 @@
 
-Obiettivo (richiesta tua)
-- Sezione **Recensioni** deve essere **mobile-first**, con **più recensioni (12)** e **movimento verticale continuo** “non ordinato”.
-- Niente rotazione/tilt (hai scelto “Solo movimento”).
-- L’animazione deve **mettersi in pausa** quando l’utente **tocca/pressa** (mobile) o **hover** (desktop).
-- Mantenere accessibilità: se l’utente ha **Riduci animazioni** attivo, disattiviamo l’animazione.
+## Obiettivo (richiesta tua)
+Sistemare la sezione **Recensioni** su **mobile** perché:
+- le card risultano **troppo strette** (2 colonne su schermi piccoli)
+- alcune parti risultano **tagliate** (clipping in alto/basso + fade troppo aggressivo + overflow)
+- la velocità del marquee è **troppo alta** → va **rallentata** fino a un ritmo “giusto”
 
 ---
 
-## 1) Esplorazione (stato attuale)
-- In `src/components/eden/EdenLanding.tsx` la sezione recensioni (`#recensioni`) renderizza **3 card** dentro:
-  - `<div className="reviews-grid reveal-stagger"> ... </div>`
-- In `src/styles/eden.css`:
-  - Desktop: `.reviews-grid` è una griglia 3 colonne.
-  - Mobile (max 640): abbiamo appena trasformato `.reviews-grid` in **carosello orizzontale** con scroll-snap.
-- Quindi: al momento la UI **non cambia davvero “sistema”** (rimane sempre `.reviews-grid`), e su mobile è **orizzontale**, mentre tu vuoi **verticale in movimento continuo**.
+## 1) Esplorazione (cosa vedo ora)
+In `src/styles/eden.css` (mobile):
+- `.reviews-marquee` è **2 colonne** (`grid-template-columns: 1fr 1fr`) con `height: 520px` e `overflow: hidden`
+- ogni colonna ha `.reviews-marquee-track` con animazione `reviews-marquee-up`:
+  - slow: `--dur: 26s`
+  - fast: `--dur: 18s`
+- c’è un fade overlay alto/basso da `72px`
+- le card hanno anche un “float/parallax” con `transform` (micro movimento), e l’intero sistema sta dentro contenitori con `overflow: hidden` → vicino ai bordi è facile percepire “taglio”.
 
 ---
 
-## 2) Design (nuovo sistema “vertical marquee” su mobile)
-### Idea UI
-- Desktop/tablet: teniamo una griglia “pulita” (come ora, 3 colonne) con 12 recensioni oppure 6–9 (decidiamo in base a resa).  
-- Mobile (≤ 640px): sostituiamo la griglia con un **marquee verticale**:
-  - 2 colonne (o 1 colonna se preferisci più leggibilità) di card
-  - ogni colonna scorre verso l’alto **in loop**
-  - le colonne hanno **durate diverse** + **gap diversi** per l’effetto “non ordinato”
-  - per il loop senza “salti”: **duplico** l’elenco (track A + track A) e animo `translateY` fino a metà.
+## 2) Design (come lo sistemiamo su mobile)
+### A) Leggibilità / “troppo strette”
+- Passo a layout **responsivo**:
+  - **1 colonna** su telefoni piccoli (es. ≤ 390px o ≤ 420px)
+  - **2 colonne** solo quando c’è abbastanza spazio (es. da 391/421px in su)
+- Aggiungo `min-width: 0;` alle card dentro la grid per evitare overflow strani in layout stretti.
 
-### Pausa su hover/touch
-- CSS: `:hover` sul contenitore (desktop) mette in pausa con `animation-play-state: paused`.
-- Touch: aggiungo in React degli handler `onPointerDown / onPointerUp / onPointerCancel` sul contenitore marquee per aggiungere/rimuovere una classe tipo `.is-paused`.
+### B) “Tagliato” (clipping)
+Riduciamo la percezione di taglio senza perdere l’effetto marquee:
+- Aumento leggermente `height` (con `clamp(...)` così si adatta al device)
+- Metto più “respiro” interno alla track con `padding-block` (spazio sopra/sotto), così le card non finiscono subito sotto il fade
+- Riduco l’altezza dei fade overlay (es. da 72px → 44/52px) oppure li rendo meno aggressivi (gradiente più morbido)
+- Ridimensiono l’ampiezza del micro-float su mobile (il float è bello ma se spinge troppo vicino ai bordi, sembra tagliato)
 
-### Reduced motion
-- `@media (prefers-reduced-motion: reduce)` → niente animazione, layout statico (lista normale verticale) per mobile.
-
----
-
-## 3) Piano di implementazione (modifiche concrete)
-### A) EdenLanding.tsx — aggiungere più recensioni e markup per marquee mobile
-1. Creare un array `REVIEWS` (12 item) in EdenLanding:
-   - `title` (es. “Cena indimenticabile”)
-   - `text`
-   - `context` (es. “Cena tra amici”, “Evento privato”, ecc.)
-   - `stars` (stringa “★★★★★” o numero)
-2. Sostituire l’attuale hardcode (3 card) con rendering da array:
-   - Desktop: render in `.reviews-grid` come adesso (ma con 12).
-3. Aggiungere una nuova struttura SOLO per mobile:
-   - `<div className="reviews-marquee">`
-     - `<div className="reviews-marquee-col" data-speed="slow">`
-       - `<div className="reviews-marquee-track">` (lista + lista duplicata)
-     - `<div className="reviews-marquee-col" data-speed="fast">` …
-4. Gestione pausa touch:
-   - stato `isReviewsPaused` boolean
-   - container marquee: `onPointerDown => setPaused(true)`, `onPointerUp/Cancel => setPaused(false)`
-   - classe `reviews-marquee is-paused` quando paused
-
-> Nota: la griglia `.reviews-grid` può restare per desktop/tablet; su mobile la nascondiamo e mostriamo solo marquee (via CSS).
+### C) Velocità “troppo alta”
+- Rallento le durate:
+  - slow: da 26s → ~40–46s
+  - fast: da 18s → ~30–34s
+- Mantengo comunque differenze di velocità/delay tra colonne per l’effetto “non ordinato”, ma in modo più elegante e “premium”.
 
 ---
 
-### B) eden.css — rimuovere il carosello orizzontale e aggiungere marquee verticale
-1. Eliminare/neutralizzare la parte mobile che trasforma `.reviews-grid` in carosello orizzontale:
-   - In `@media (max-width: 640px)` togliere `grid-auto-flow: column`, `overflow-x`, `scroll-snap-type`, scrollbar ecc.
-2. Aggiungere stile per marquee:
-   - `.reviews-marquee { display: none; }` di default
-   - `@media (max-width: 640px)`:
-     - `.reviews-grid { display: none; }`
-     - `.reviews-marquee { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 520px; overflow: hidden; }`
-     - `.reviews-marquee-track { display: grid; gap: 12px; animation: reviews-marquee-up var(--dur) linear infinite; }`
-     - `.reviews-marquee-col[data-speed="slow"] { --dur: 22s; }`
-     - `.reviews-marquee-col[data-speed="fast"] { --dur: 16s; }`
-3. Keyframes:
-   - `@keyframes reviews-marquee-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }`
-   - Funziona perché la track contiene “lista + lista” → la seconda metà rimpiazza la prima senza stacco.
-4. Pausa:
-   - `.reviews-marquee:hover .reviews-marquee-track { animation-play-state: paused; }`
-   - `.reviews-marquee.is-paused .reviews-marquee-track { animation-play-state: paused; }`
-5. Reduced motion:
-   - `@media (prefers-reduced-motion: reduce)`:
-     - `.reviews-marquee-track { animation: none; }`
-     - `.reviews-marquee { height: auto; overflow: visible; }`
-     - (oppure fallback a lista semplice 1 colonna)
+## 3) Modifiche concrete (file e punti precisi)
+### 3.1 `src/styles/eden.css`
+Nel blocco mobile dove ora hai:
+- `.reviews-marquee { grid-template-columns: 1fr 1fr; height: 520px; gap: 12px; }`
+- `.reviews-marquee-col[data-speed="slow"] { --dur: 26s; }`
+- `.reviews-marquee-col[data-speed="fast"] { --dur: 18s; }`
+- overlay `height: 72px`
+- `.reviews-marquee-track { padding: 4px; }`
+
+Applico:
+1) **Altezza e spaziatura migliori**
+- `height: clamp(560px, 70vh, 720px);`
+- `gap: 14px;` (un filo più arioso)
+- track: `padding: 10px;` + `padding-block: 44px;` (anti-taglio)
+
+2) **Breakpoint per 1 colonna su schermi piccoli**
+- Aggiungo una media query tipo:
+  - `@media (max-width: 420px) { .reviews-marquee { grid-template-columns: 1fr; } }`
+  (così su telefoni piccoli le card non sono “strettissime”)
+
+3) **Rallento il marquee**
+- `slow --dur` → 42s (o 46s)
+- `fast --dur` → 32s (o 34s)
+- (eventualmente) riduco anche l’effetto “delay” se crea accelerazioni percepite
+
+4) **Fade overlay meno “tagliente”**
+- `height` overlay: 72px → 48/52px
+- gradiente: lo rendo più morbido (più trasparenza più graduale)
+
+5) **Float/parallax più “pulito” e meno clipping**
+- Riduco ampiezza del keyframe:
+  - invece di 8px, scendo a 4–6px max
+- Aggiungo `min-width: 0;` sulle card nel marquee:
+  - `.reviews-marquee .review-card { min-width: 0; }`
+  (evita tagli/overflow strani in colonne strette)
+
+> Nota: resto compatibile con **pausa su hover/touch** e con **prefers-reduced-motion** (non tocco quel comportamento).
+
+### 3.2 (Opzionale) `src/components/eden/EdenLanding.tsx`
+Non è strettamente necessario per il tuo problema, ma se dopo CSS vedi ancora card “alte” o testo troppo lungo:
+- posso aggiungere una variante “short text” (taglio controllato con `line-clamp`) **solo su mobile** per mantenere leggibilità in 2 colonne.
+Prima però proviamo con le correzioni CSS sopra: di solito basta.
 
 ---
 
 ## 4) Verifica end-to-end (manuale in preview)
-1. Apri home e scorri a `#recensioni` da mobile:
-   - devono vedersi **12 recensioni** (in loop, non solo 3).
-   - deve esserci **movimento verticale continuo**.
-2. Prova “pausa su touch”:
-   - tieni premuto sulle recensioni → scorrimento si ferma
-   - rilascia → riparte
-3. Prova da desktop:
-   - hover sulle recensioni → si ferma
-4. Se hai “Riduci animazioni” attivo nel sistema:
-   - le recensioni restano statiche (niente movimento).
+1) Test su mobile (telefono o viewport 390px):
+- Vai a `#recensioni`
+- Conferma che ora è **1 colonna** (card più larghe e leggibili)
+- Verifica che non sembri “tagliato” in alto/basso (fade più morbido + padding)
+- **Premi e tieni premuto**: tutto si mette in pausa, rilascia e riparte
+
+2) Test su mobile più largo (414–430px):
+- Conferma che può tornare a **2 colonne** senza diventare troppo stretto
+- Movimento più lento e “premium”
+
+3) Desktop:
+- Hover pausa OK
+- La griglia desktop resta invariata (marquee è solo mobile)
 
 ---
 
-## 5) Micro-decisioni (che applico durante l’implementazione)
-- Mobile: 2 colonne (più “wow”) o 1 colonna (più leggibilità). Di default propongo **2 colonne**.
-- Altezza marquee: inizialmente ~520px, poi la rifiniamo in base a come appare con le tue card.
+## 5) Micro-decisione che ti chiedo (per non andare a tentativi)
+Soglia per passare a 1 colonna su mobile: preferisci?
+- **A)** 420px (più spesso 1 colonna, massima leggibilità)
+- **B)** 390px (solo telefoni davvero piccoli)
+Io propongo **A) 420px** per evitare “troppo strette” su tanti dispositivi.
 
