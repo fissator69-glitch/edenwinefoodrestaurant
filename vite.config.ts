@@ -17,5 +17,11 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    // Forza una singola istanza di React in bundle (evita dispatcher hooks = null)
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
+  optimizeDeps: {
+    // Evita prebundle inconsistenti in dev con provider che usa hooks (react-query)
+    include: ["@tanstack/react-query"],
   },
 }));
