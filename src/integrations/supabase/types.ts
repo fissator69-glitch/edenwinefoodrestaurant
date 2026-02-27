@@ -20,6 +20,7 @@ export type Database = {
           bucket: string
           created_at: string
           id: string
+          page: string | null
           path: string
           tags: string[]
           updated_at: string
@@ -29,6 +30,7 @@ export type Database = {
           bucket?: string
           created_at?: string
           id?: string
+          page?: string | null
           path: string
           tags?: string[]
           updated_at?: string
@@ -38,6 +40,7 @@ export type Database = {
           bucket?: string
           created_at?: string
           id?: string
+          page?: string | null
           path?: string
           tags?: string[]
           updated_at?: string
