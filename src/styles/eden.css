@@ -3672,12 +3672,12 @@ body.eden-lock {
 /* Lighter base background (same idea: 3 radials + base) */
 .locanda-hero::before {
   background:
-    radial-gradient(circle at 0 0, hsl(226.6 48% 38% / 0.78) 0%, transparent 60%),
-    radial-gradient(circle at 100% 0, hsl(158.8 46% 28% / 0.72) 0%, transparent 60%),
-    radial-gradient(circle at 0 100%, hsl(355 38% 32% / 0.68) 0%, transparent 64%),
+    radial-gradient(circle at 0 0, hsl(32 44% 34% / 0.72) 0%, transparent 60%),
+    radial-gradient(circle at 100% 0, hsl(38 58% 86% / 0.16) 0%, transparent 62%),
+    radial-gradient(circle at 0 100%, hsl(22 38% 22% / 0.70) 0%, transparent 64%),
 
-    /* Brighter night base (Locanda-only) */
-    hsl(224.9 40% 9%);
+    /* Warmer biscotto base (Locanda-only) */
+    hsl(28 28% 7%);
 
   mix-blend-mode: normal;
 }
@@ -3741,9 +3741,9 @@ body.eden-lock {
   opacity: 0.9;
   z-index: 2;
   background:
-    radial-gradient(circle at 20% 0%, hsl(151 78% 79% / 0.22) 0%, transparent 55%),
-    radial-gradient(circle at 88% 88%, hsl(36 53% 87% / 0.26) 0%, transparent 58%),
-    radial-gradient(circle at 55% 55%, hsl(var(--eden-emerald) / 0.12) 0%, transparent 62%);
+    radial-gradient(circle at 18% 12%, hsl(38 70% 92% / 0.26) 0%, transparent 58%),
+    radial-gradient(circle at 88% 88%, hsl(28 48% 48% / 0.16) 0%, transparent 60%),
+    radial-gradient(circle at 55% 55%, hsl(34 55% 70% / 0.14) 0%, transparent 62%);
   filter: blur(8px);
   animation: auroraDrift 24s ease-in-out infinite alternate;
 }
@@ -3797,7 +3797,7 @@ body.eden-lock {
   display: block;
   margin-inline: auto;
   height: auto;
-  width: min(780px, 92vw);
+  width: min(740px, 90vw);
   max-width: 100%;
   filter: drop-shadow(0 18px 44px hsl(0 0% 0% / 0.55));
 }
