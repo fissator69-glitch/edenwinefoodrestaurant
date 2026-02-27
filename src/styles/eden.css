@@ -2648,11 +2648,66 @@ body.eden-body #root {
   gap: 30px;
 }
 
+/* Mobile-first: trasformiamo le recensioni in "cards" scorrevoli (swipe) */
 @media (max-width: 900px) {
+  .reviews-header {
+    margin-bottom: 34px;
+    padding-bottom: 26px;
+    align-items: flex-start;
+  }
+
+  .reviews-stats {
+    width: 100%;
+    gap: 18px;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
   .reviews-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
+
+@media (max-width: 640px) {
+  .reviews-premium {
+    padding: 76px 16px;
+  }
+
+  /* Layout a carosello: una card grande alla volta + snap */
+  .reviews-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(84%, 1fr);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    gap: 14px;
+  }
+
+  .reviews-grid::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .reviews-grid::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 100% / 0.12);
+    border-radius: 999px;
+  }
+
+  .review-card {
+    scroll-snap-align: start;
+    padding: 26px;
+  }
+
+  .stat-val {
+    font-size: 2.35rem;
+  }
+}
+
 
 .review-card {
   padding: 40px;
