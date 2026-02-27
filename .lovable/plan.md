@@ -1,129 +1,78 @@
 
-Obiettivo immediato (quello che ti sta bloccando adesso)
-1) Sistemare l’accesso Admin in modo che:
-   - se la password/email è sbagliata ti dica chiaramente cosa fare (non solo “invalid login credentials”)
-   - se l’email non è confermata ti mostri il bottone “Reinvia email di conferma”
-   - tu possa fare “Password dimenticata” e resettare senza impazzire
-2) Aggiungere un pannello “Utenti” in Admin per:
-   - vedere la lista utenti creati (email + id + stato conferma)
-   - cancellare utenti selezionandoli da una lista (con conferma e protezioni)
-3) Risolvere il “bootstrap” del ruolo admin (adesso `has_role(..., admin)` torna `false` e quindi anche se fai login ti ributta fuori dall’admin).
+Obiettivo
+- Ripristinare l’accesso a /admin senza loop/redirect e far funzionare la tab “Utenti” (lista + cancellazione) che dipende dal ruolo admin.
+- Far sì che non ricapiti il caos “utente giusto ma ruolo assegnato all’UUID sbagliato”.
 
-Contesto che ho già dai log / codice
-- Le richieste mostrano sia `email_not_confirmed` (prima) sia `invalid_credentials` (quando si prova con email/password diverse o password sbagliata).
-- L’utente `admin@edewinefood.it` risulta poi confermato e con login OK, ma `rpc/has_role` risponde `false` ⇒ manca la riga in `user_roles` per quel user_id.
-- L’Admin è protetto correttamente via controllo server-side (RPC `has_role`), quindi non c’è bypass lato client: va solo “sbloccato” il ruolo.
+Cosa sta succedendo (diagnosi basata su log + DB)
+- Nel database c’è UNA sola riga in `public.user_roles`:
+  - `user_id = a823052b-6989-4c40-a862-9344ae1d88a7`, `role = admin`.
+- Ma l’utente con cui stai facendo login adesso è:
+  - `user_id = 893b45cc-7f12-4c9f-abc6-48bf35d12109` (email: `admin@edenwinefood.it`).
+- Il check `has_role(893b..., 'admin')` risponde `false` (lo si vede anche dalle request recenti).
+- Quindi:
+  - il login con password può anche andare a buon fine,
+  - però `ProtectedAdminRoute`/`useAdminAuthGuard` ti rimbalzano perché `isAdmin` resta false,
+  - e anche la funzione backend `admin-users` risponde 403 perché verifica admin server-side con l’UUID del token.
 
-Cosa implementerò (frontend + backend) — in passi piccoli e verificabili
+Perché è successo
+- Hai creato/ottenuto più account admin “di prova” (o con email molto simili) e io ho bootstrapppato il ruolo admin sull’UUID sbagliato (quello che risultava dai log di un tentativo precedente).
+- In particolare si vedono email simili nei log storici (ed è facilissimo confondersi). Il risultato è che il ruolo è sul vecchio utente, mentre tu stai loggando con un altro.
 
-A) Bootstrap del primo admin (sblocco accesso)
-1. Inserire una riga in `user_roles` con:
-   - `user_id = a823052b-6989-4c40-a862-9344ae1d88a7` (quello visto nei log)
-   - `role = 'admin'`
-2. Subito dopo:
-   - fare logout/login e verificare che `has_role` torni `true`
-   - accedere a `/admin` senza redirect.
+Cosa farò (implementazione) — passi piccoli e verificabili
 
-Nota sicurezza:
-- I ruoli restano SOLO in tabella separata `user_roles` (come già fatto).
-- Non userò localStorage/sessionStorage né credenziali hardcoded per decidere chi è admin.
+1) Fix immediato (dato/ruolo): assegno admin all’utente che stai usando ORA
+- Inserisco in `public.user_roles` una riga:
+  - `user_id = 893b45cc-7f12-4c9f-abc6-48bf35d12109`
+  - `role = 'admin'`
+- Lo faccio in modo “safe”:
+  - se esiste già, non duplica (la tabella ha vincolo unique (user_id, role)).
+- Verifica:
+  - ripeto `rpc/has_role` per 893b... e deve tornare `true`.
+  - dopo refresh, /admin deve aprirsi senza redirect a /admin/login.
 
-B) Sistemare “invalid login credentials” (UX + flusso auth robusto)
-Modifiche a `src/pages/admin/AdminLogin.tsx`:
-1) Gestione errori “intelligente”:
-   - Se `error.code === "email_not_confirmed"`: mostra callout con bottone “Reinvia conferma” (invoca resend).
-   - Se `error.code === "invalid_credentials"`: testo chiaro “Email o password errate”.
-   - Messaggi più “umani” nei toast (senza perdere dettagli tecnici in console).
-2) Aggiungere “Password dimenticata?”:
-   - Link sotto al form che apre una modalità “reset password”
-   - Chiede email e invia reset con redirect su `/reset-password`.
-3) Creare la pagina pubblica `/reset-password`:
-   - Form nuova password + conferma
-   - Legge il contesto recovery dalla URL/hash come richiesto dal provider auth
-   - Chiama `supabase.auth.updateUser({ password })`.
-4) (Opzionale ma consigliato) Aggiungere anche un pulsante “Mostra/Nascondi password” per ridurre errori di digitazione.
+2) (Opzionale ma consigliato) Pulizia: rimuovo admin dal vecchio UUID se non ti serve
+- Se `a823052b-...` è solo un test, tolgo il ruolo admin da quell’utente (DELETE da `public.user_roles` per quell’UUID).
+- Questo riduce rischio di “admin fantasma” rimasti in giro.
+- Nota: lo faccio solo dopo che confermi che quell’account non ti serve.
 
-C) Funzione backend “admin-users” per lista/cancellazione utenti (solo admin)
-Per poter cancellare utenti “veri” del sistema auth non basta il client; serve una funzione backend che usi la chiave di servizio.
+3) Rendere “anti-inculata” il login admin: mostrare chiaramente quale account è loggato e se è admin
+Stato attuale:
+- `AdminLogin.tsx` già mostra un toast con “User ID” dopo login.
+Problema:
+- Il toast si perde e non aiuta quando poi vieni redirectato.
+Miglioria che implementerò:
+- In `/admin/login` aggiungo un riquadro “Stato sessione” sempre visibile:
+  - Email loggata (se presente)
+  - User ID (copiabile)
+  - Esito “Admin: sì/no” (chiamando `has_role` in pagina login)
+  - Se “Admin: no”, mostro un messaggio chiaro: “Sei autenticato ma non hai i permessi admin”.
+Risultato: se in futuro fai login con l’account sbagliato, te ne accorgi subito senza impazzire.
 
-1) Creare una backend function (Edge Function) `admin-users` con queste regole:
-   - `verify_jwt = false` in `supabase/config.toml` per evitare problemi di verifica gateway in questo ambiente.
-   - Validazione manuale nel codice:
-     - prende header `Authorization`
-     - `supabase.auth.getUser(token)` per validare token
-     - verifica admin via DB (`has_role(user.id, 'admin')`) usando un client con service key o una query diretta a `user_roles` (sempre server-side).
-   - Se non admin ⇒ 403.
-2) Endpoint supportati:
-   - `GET` → ritorna lista utenti paginata (email, id, created_at, email_confirmed_at)
-   - `DELETE` con `{ userId }` → cancella un utente
-3) Sicurezze:
-   - bloccare cancellazione del proprio account (self-delete) oppure richiedere doppia conferma
-   - logging minimale (no leak token)
-   - CORS headers corretti.
-4) Non modificherò tabelle di sistema; userò le API admin supportate dalla libreria.
+4) Verifica che la tab “Utenti” funzioni davvero (lista e cancellazione)
+- Una volta che 893b... è admin:
+  - `admin-users` (funzione backend) deve tornare 200 su GET.
+  - La tab “Utenti” in `AdminDashboard.tsx` deve popolarsi.
+- Testo anche la delete:
+  - seleziono 1 utente test e provo cancellazione.
+  - verifico che “self-delete” sia bloccato (già implementato nella funzione backend: se `userId === requesterId` → 400).
 
-D) Tab “Utenti” in AdminDashboard (selezione da lista + delete)
-1) Aggiungere nuovo tab “Utenti” in `src/pages/admin/AdminDashboard.tsx`.
-2) UI:
-   - tabella con:
-     - Email
-     - Stato conferma (Confermata / Non confermata)
-     - Created at
-     - User ID (copiabile)
-   - checkbox per selezionare uno o più utenti
-   - bottone “Cancella selezionati” con AlertDialog (Radix) + conferma
-   - filtro veloce (search email)
-3) Integrazione:
-   - usa `supabase.functions.invoke("admin-users", { body })` per list e delete
-   - gestisce loading/error con toast
-   - refresh dopo delete.
+5) Checklist end-to-end (quella che ti chiedo di fare anche tu)
+- Login:
+  - fai login con `admin@edenwinefood.it`
+  - vai su `/admin` e resta dentro.
+- Tab Utenti:
+  - apri tab “Utenti”
+  - vedi la lista
+  - cancelli 1 utente test
+  - fai refresh e verifichi che è sparito.
 
-E) Fix secondari (non bloccanti, ma puliscono console)
-Dai console log risulta un warning sui ref durante render:
-- indagherò dove passa un `ref` a componenti function (probabile interazione `FormControl`/Slot o un wrapper che fa cloneElement).
-- Se replicabile, applicherò un fix mirato (forwardRef dove serve) per ridurre rumore in console, senza cambiare UI.
+Ambiguità minima da chiarire (solo per la pulizia)
+- Vuoi che rimuova il ruolo admin dall’utente vecchio `a823052b-...` oppure lo tieni (es. come “backup admin”)?
 
-Sequenza di rilascio (per non rompere nulla)
-1) Inserimento ruolo admin per il tuo userId (sblocco immediato).
-2) AdminLogin: messaggi errore + “reinvia conferma” + “password dimenticata”.
-3) Nuova route `/reset-password` e test completo reset.
-4) Backend function `admin-users` (list + delete) con controlli admin robusti.
-5) Tab “Utenti” in AdminDashboard (selezione da lista + cancellazione).
-6) Fix warning ref (se ancora presente e riproducibile).
+Dettagli tecnici (per trasparenza)
+- Non tocchiamo `auth.users`, né salviamo ruoli nel profilo: rimane tutto nella tabella separata `public.user_roles` e la verifica permessi avviene server-side via `has_role()`.
+- La funzione backend `admin-users` è già corretta come modello di sicurezza: valida token e poi verifica admin dal database usando una chiave server. Il problema attuale è solo che l’utente loggato non aveva il ruolo.
 
-Cosa ti chiederò di testare (end-to-end)
-1) Login admin:
-   - prova password sbagliata → messaggio chiaro
-   - prova email non confermata (se ne hai una) → appare “Reinvia conferma”
-2) Reset password:
-   - invio email reset → arrivo su `/reset-password` → set nuova password → login OK
-3) Gestione utenti:
-   - apri tab “Utenti”
-   - selezioni 1-2 account di test
-   - cancelli e ricarichi lista
-   - verifichi che non puoi cancellare te stesso (o che richiede doppia conferma)
-4) Accesso `/admin`:
-   - verificare che dopo bootstrap ruolo admin non ti rimbalza più.
-
-Impatto su sicurezza
-- Tutte le operazioni “pericolose” (lista utenti/cancellazione) saranno lato backend con:
-  - token validato
-  - controllo ruolo admin server-side
-  - nessuna fiducia nel client.
-- Ruoli sempre in tabella separata `user_roles`.
-
-File/aree coinvolte (indicativo)
-- Frontend:
-  - `src/pages/admin/AdminLogin.tsx` (migliorie UX + reset flow)
-  - `src/pages/admin/ResetPassword.tsx` (nuovo)
-  - `src/App.tsx` (aggiunta route /reset-password)
-  - `src/pages/admin/AdminDashboard.tsx` (nuovo tab Utenti)
-- Backend:
-  - `supabase/functions/admin-users/index.ts` (nuovo)
-  - `supabase/config.toml` (aggiunta blocco verify_jwt=false per questa function)
-- Dati:
-  - inserimento riga `user_roles` per il tuo user_id (operazione dati, non schema)
-
-Nota operativa su “cancellare gli user creati”
-- Hai scelto “Selezione da lista”: quindi non cancello “a tappeto”.
-- Ti metto un pannello dove li vedi e scegli tu; è l’approccio più sicuro per evitare di cancellare utenti reali per errore.
+Output atteso
+- /admin finalmente si apre e non ti prende per il culo.
+- La tab “Utenti” mostra gli account creati e puoi cancellarli selezionandoli dalla lista.
