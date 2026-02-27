@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type EdenRouteTransitionContextValue = {
   startEdenTransition: (to: string) => void;
@@ -16,13 +16,16 @@ function prefersReducedMotion() {
   }
 }
 
-const TOTAL_MS = 320;
+const TOTAL_MS = 560;
 
 export function EdenRouteTransitionProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const timeoutsRef = useRef<number[]>([]);
+  const skipNextLocationTransitionRef = useRef(false);
+  const isFirstLocationEffectRef = useRef(true);
 
   const clearTimers = useCallback(() => {
     timeoutsRef.current.forEach((t) => window.clearTimeout(t));
@@ -32,6 +35,31 @@ export function EdenRouteTransitionProvider({ children }: { children: React.Reac
   useEffect(() => {
     return () => clearTimers();
   }, [clearTimers]);
+
+  // Trigger the transition on every navigation, including browser back/forward.
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+
+    // Avoid a flash on the initial mount.
+    if (isFirstLocationEffectRef.current) {
+      isFirstLocationEffectRef.current = false;
+      return;
+    }
+
+    // Avoid double-trigger when navigation is initiated by startEdenTransition().
+    if (skipNextLocationTransitionRef.current) {
+      skipNextLocationTransitionRef.current = false;
+      return;
+    }
+
+    clearTimers();
+    setIsTransitioning(true);
+    timeoutsRef.current.push(
+      window.setTimeout(() => {
+        setIsTransitioning(false);
+      }, TOTAL_MS),
+    );
+  }, [location.key, clearTimers]);
 
   const startEdenTransition = useCallback(
     (to: string) => {
@@ -46,10 +74,13 @@ export function EdenRouteTransitionProvider({ children }: { children: React.Reac
       clearTimers();
       setIsTransitioning(true);
 
+      // Prevent the location effect from re-triggering for this navigation.
+      skipNextLocationTransitionRef.current = true;
+
       // Navigate immediately: the new page should feel instant.
       navigate(to);
 
-      // End the micro "glow flash" quickly.
+      // End the micro "veil" quickly.
       timeoutsRef.current.push(
         window.setTimeout(() => {
           setIsTransitioning(false);

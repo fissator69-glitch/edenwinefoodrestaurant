@@ -2123,7 +2123,7 @@ body.eden-body #root {
 }
 
 /* ═══════════════════════════════════════════════
-   ROUTE TRANSITION (EDEN) · micro glow flash
+   ROUTE TRANSITION (EDEN) · soft veil
 ═══════════════════════════════════════════════ */
 
 .eden-route-transition {
@@ -2134,7 +2134,7 @@ body.eden-body #root {
   overflow: hidden;
   isolation: isolate;
 
-  /* No slide/cover: always in place, only opacity flashes */
+  /* No slide/cover: always in place, only opacity */
   transform: none;
   opacity: 0;
 
@@ -2143,7 +2143,7 @@ body.eden-body #root {
   will-change: opacity;
 }
 
-/* The actual light flash (single layer, soft) */
+/* The actual light veil (single layer, soft) */
 .eden-route-transition::before {
   content: "";
   position: absolute;
@@ -2151,14 +2151,14 @@ body.eden-body #root {
   pointer-events: none;
 
   background:
-    radial-gradient(circle at 18% 22%, hsl(var(--eden-emerald-soft) / 0.34) 0%, transparent 58%),
-    radial-gradient(circle at 82% 72%, hsl(var(--eden-gold) / 0.24) 0%, transparent 62%),
-    radial-gradient(circle at 55% 18%, hsl(var(--eden-pearl) / 0.12) 0%, transparent 56%);
+    radial-gradient(circle at 18% 22%, hsl(var(--eden-emerald-soft) / 0.28) 0%, transparent 58%),
+    radial-gradient(circle at 82% 72%, hsl(var(--eden-gold) / 0.20) 0%, transparent 62%),
+    radial-gradient(circle at 55% 18%, hsl(var(--eden-pearl) / 0.10) 0%, transparent 56%);
 
   mix-blend-mode: screen;
-  filter: blur(20px) saturate(1.25);
+  filter: blur(26px) saturate(1.12);
   opacity: 0;
-  transform: translate3d(0, 0, 0) scale(1.03);
+  transform: translate3d(0, 0, 0) scale(1.02);
   will-change: opacity, transform;
 }
 
@@ -2168,45 +2168,62 @@ body.eden-body #root {
 }
 
 .eden-route-transition--flash {
-  animation: edenRouteFlash 320ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation: edenRouteVeil 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .eden-route-transition--flash::before {
-  animation: edenRouteFlashGlow 320ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  animation: edenRouteVeilGlow 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@keyframes edenRouteFlash {
+@keyframes edenRouteVeil {
   0% {
     opacity: 0;
   }
-  35% {
-    opacity: 1;
+  42% {
+    opacity: 0.62;
   }
   100% {
     opacity: 0;
   }
 }
 
-@keyframes edenRouteFlashGlow {
+@keyframes edenRouteVeilGlow {
   0% {
     opacity: 0;
-    transform: scale(1.02);
+    transform: scale(1.015);
   }
-  35% {
-    opacity: 0.95;
-    transform: scale(1.045);
+  42% {
+    opacity: 0.52;
+    transform: scale(1.04);
   }
   100% {
     opacity: 0;
-    transform: scale(1.06);
+    transform: scale(1.055);
   }
 }
 
-/* No blur/zoom on the page: must feel instant */
+/* Micro crossfade on the page: feels softer but still instant */
 .eden-transitioning .page {
-  transform: none;
-  filter: none;
-  transition: none;
+  animation: edenPageCrossfade 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, filter, transform;
+}
+
+@keyframes edenPageCrossfade {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate3d(0, 0, 0);
+  }
+  42% {
+    opacity: 0.965;
+    filter: blur(1.5px);
+    transform: translate3d(0, 1px, 0);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
