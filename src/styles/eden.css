@@ -2688,12 +2688,19 @@ body.eden-body #root {
   .reviews-marquee {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    height: 520px;
+    gap: 14px;
+    height: clamp(560px, 70vh, 720px);
     overflow: hidden;
     position: relative;
     border-radius: 18px;
     isolation: isolate;
+  }
+
+  /* 1 colonna su telefoni piccoli: card più larghe e leggibili */
+  @media (max-width: 420px) {
+    .reviews-marquee {
+      grid-template-columns: 1fr;
+    }
   }
 
   .reviews-marquee::before,
@@ -2702,19 +2709,29 @@ body.eden-body #root {
     position: absolute;
     left: 0;
     right: 0;
-    height: 72px;
+    height: 52px;
     z-index: 2;
     pointer-events: none;
   }
 
   .reviews-marquee::before {
     top: 0;
-    background: linear-gradient(180deg, hsl(var(--eden-night)) 0%, transparent 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--eden-night) / 0.92) 0%,
+      hsl(var(--eden-night) / 0.35) 45%,
+      transparent 100%
+    );
   }
 
   .reviews-marquee::after {
     bottom: 0;
-    background: linear-gradient(0deg, hsl(var(--eden-night)) 0%, transparent 100%);
+    background: linear-gradient(
+      0deg,
+      hsl(var(--eden-night) / 0.92) 0%,
+      hsl(var(--eden-night) / 0.35) 45%,
+      transparent 100%
+    );
   }
 
   .reviews-marquee-col {
@@ -2723,20 +2740,21 @@ body.eden-body #root {
 
   .reviews-marquee-track {
     display: grid;
-    gap: 12px;
-    padding: 4px;
+    gap: 14px;
+    padding: 10px;
+    padding-block: 44px;
     will-change: transform;
     animation: reviews-marquee-up var(--dur) linear infinite;
     animation-delay: calc(var(--delay) * -1s);
   }
 
   .reviews-marquee-col[data-speed="slow"] {
-    --dur: 26s;
-    --delay: 7;
+    --dur: 42s;
+    --delay: 9;
   }
 
   .reviews-marquee-col[data-speed="fast"] {
-    --dur: 18s;
+    --dur: 32s;
     --delay: 0;
   }
 
@@ -2744,6 +2762,11 @@ body.eden-body #root {
   .reviews-marquee:hover .reviews-marquee-track,
   .reviews-marquee.is-paused .reviews-marquee-track {
     animation-play-state: paused;
+  }
+
+  /* Anti-overflow/clipping nelle colonne strette */
+  .reviews-marquee .review-card {
+    min-width: 0;
   }
 
   /* Parallax/float visibile: micro-movimento delle card (indipendente dallo scorrimento) */
@@ -2803,15 +2826,15 @@ body.eden-body #root {
   }
 
   25% {
-    transform: translate3d(2px, -6px, 0);
+    transform: translate3d(1px, -4px, 0);
   }
 
   50% {
-    transform: translate3d(-2px, 4px, 0);
+    transform: translate3d(-1px, 3px, 0);
   }
 
   75% {
-    transform: translate3d(1px, 8px, 0);
+    transform: translate3d(1px, 5px, 0);
   }
 }
 
