@@ -8,12 +8,13 @@ export type MediaAsset = {
   alt: string | null;
   tags: string[];
   created_at: string;
+  page: string | null;
 };
 
 async function fetchMediaAssets() {
   const { data, error } = await supabase
     .from("media_assets")
-    .select("id,bucket,path,alt,tags,created_at")
+    .select("id,bucket,path,alt,tags,created_at,page")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as MediaAsset[];
