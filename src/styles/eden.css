@@ -2648,6 +2648,10 @@ body.eden-body #root {
   gap: 30px;
 }
 
+.reviews-marquee {
+  display: none;
+}
+
 /* Mobile-first: trasformiamo le recensioni in "cards" scorrevoli (swipe) */
 @media (max-width: 900px) {
   .reviews-header {
@@ -2676,35 +2680,99 @@ body.eden-body #root {
     padding: 76px 16px;
   }
 
-  /* Layout a carosello: una card grande alla volta + snap */
+  /* Su mobile sostituiamo la griglia con un marquee verticale continuo */
   .reviews-grid {
+    display: none;
+  }
+
+  .reviews-marquee {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(84%, 1fr);
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 6px;
-    gap: 14px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    height: 520px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 18px;
+    isolation: isolate;
   }
 
-  .reviews-grid::-webkit-scrollbar {
-    height: 6px;
+  .reviews-marquee::before,
+  .reviews-marquee::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 72px;
+    z-index: 2;
+    pointer-events: none;
   }
 
-  .reviews-grid::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 100% / 0.12);
-    border-radius: 999px;
+  .reviews-marquee::before {
+    top: 0;
+    background: linear-gradient(180deg, hsl(var(--eden-night)) 0%, transparent 100%);
   }
 
+  .reviews-marquee::after {
+    bottom: 0;
+    background: linear-gradient(0deg, hsl(var(--eden-night)) 0%, transparent 100%);
+  }
+
+  .reviews-marquee-col {
+    overflow: hidden;
+  }
+
+  .reviews-marquee-track {
+    display: grid;
+    gap: 12px;
+    padding: 4px;
+    will-change: transform;
+    animation: reviews-marquee-up var(--dur) linear infinite;
+    animation-delay: calc(var(--delay) * -1s);
+  }
+
+  .reviews-marquee-col[data-speed="slow"] {
+    --dur: 26s;
+    --delay: 7;
+  }
+
+  .reviews-marquee-col[data-speed="fast"] {
+    --dur: 18s;
+    --delay: 0;
+  }
+
+  /* Pausa: hover (desktop) + touch/press (mobile via class) */
+  .reviews-marquee:hover .reviews-marquee-track,
+  .reviews-marquee.is-paused .reviews-marquee-track {
+    animation-play-state: paused;
+  }
+
+  /* Card più compatte sul marquee mobile */
   .review-card {
-    scroll-snap-align: start;
-    padding: 26px;
+    padding: 22px;
   }
 
   .stat-val {
     font-size: 2.35rem;
+  }
+}
+
+@keyframes reviews-marquee-up {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviews-grid {
+    display: grid !important;
+  }
+
+  .reviews-marquee {
+    display: none !important;
   }
 }
 
