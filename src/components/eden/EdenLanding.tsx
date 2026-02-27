@@ -55,6 +55,81 @@ type GalleryItem = {
   title: string;
 };
 
+type EdenReview = {
+  title: string;
+  text: string;
+  context: string;
+  stars?: string;
+  badge?: string;
+};
+
+const EDEN_REVIEWS: EdenReview[] = [
+  {
+    title: "Location da sogno",
+    text: "Sala elegante, atmosfera calda, servizio sempre presente ma mai invadente. Il posto perfetto per una festa che resta nei ricordi di tutti.",
+    context: "Evento privato in sala",
+  },
+  {
+    title: "Cucina e accoglienza",
+    text: "Dalla scelta dei piatti al brindisi finale, Miriam e lo staff ci hanno seguito con estrema attenzione. Piatti curati, porzioni giuste, tempi perfetti.",
+    context: "Cena tra amici",
+  },
+  {
+    title: "Festa impeccabile",
+    text: "Abbiamo gestito tutto in anticipo. La sera dell'evento era già tutto pronto, senza imprevisti e con una magia unica per la nostra laurea.",
+    context: "Festa di Laurea",
+  },
+  {
+    title: "Qualità altissima",
+    text: "Materie prime eccellenti e presentazioni curate. Ogni portata aveva un equilibrio perfetto e un gusto riconoscibile.",
+    context: "Cena di coppia",
+  },
+  {
+    title: "Atmosfera unica",
+    text: "Luci soffuse, musica al punto giusto e un'energia speciale. Ci siamo sentiti coccolati dall'inizio alla fine.",
+    context: "Anniversario",
+  },
+  {
+    title: "Staff super",
+    text: "Gentilezza e professionalità rare: consigli perfetti sui vini e attenzione costante senza essere invadenti.",
+    context: "Cena in famiglia",
+  },
+  {
+    title: "Menù sorprendente",
+    text: "Abbinamenti originali ma sempre armoniosi. Una degustazione che ti fa venire voglia di tornare per provare tutto.",
+    context: "Percorso degustazione",
+  },
+  {
+    title: "Organizzazione top",
+    text: "Per il nostro compleanno hanno curato ogni dettaglio: mise en place, tempistiche e sorprese finali. Esperienza perfetta.",
+    context: "Compleanno",
+  },
+  {
+    title: "Sapori di Puglia",
+    text: "Tradizione e creatività insieme: piatti che raccontano il territorio con un tocco contemporaneo.",
+    context: "Cena gourmet",
+  },
+  {
+    title: "Eleganza vera",
+    text: "Ambiente raffinato senza essere freddo. Si respira cura, gusto e una bella energia in ogni angolo.",
+    context: "Serata speciale",
+  },
+  {
+    title: "Dolci memorabili",
+    text: "Chiusura pazzesca: dessert equilibrati, non troppo zuccherati, con texture incredibili. Da applausi.",
+    context: "Cena romantica",
+  },
+  {
+    title: "Torneremo presto",
+    text: "Quando un posto ti fa stare bene così, lo capisci subito. Per noi Eden è diventata una certezza.",
+    context: "Prima visita",
+  },
+].map((r) => ({
+  ...r,
+  stars: "★★★★★",
+  badge: "Cliente verificato",
+}));
+
 // NOTE: For strict 1:1 parity with nuovo_1.html we do not apply adaptive motion changes here.
 
 function animateCounterInt(el: HTMLElement, target: number, durationMs: number) {
@@ -470,6 +545,7 @@ export default function EdenLanding() {
   const [lightboxCaption, setLightboxCaption] = useState("");
 
   const [miniToast, setMiniToast] = useState<string | null>(null);
+  const [isReviewsPaused, setIsReviewsPaused] = useState(false);
 
   // Privacy modal moved to <EdenFooter /> (shared across pages)
 
@@ -1339,57 +1415,58 @@ export default function EdenLanding() {
               </div>
 
               <div className="reviews-grid reveal-stagger">
-                <div className="review-card stagger-item">
-                  <div className="rc-quote">“</div>
-                  <p className="rc-text">
-                    Sala elegante, atmosfera calda, servizio sempre presente ma mai invadente. Il posto perfetto per una
-                    festa che resta nei ricordi di tutti.
-                  </p>
-                  <div className="rc-meta" aria-label="Valutazione">
-                    <div className="rc-stars" aria-hidden="true">
-                      ★★★★★
+                {EDEN_REVIEWS.map((r, idx) => (
+                  <div key={`${r.title}-${idx}`} className="review-card stagger-item">
+                    <div className="rc-quote">“</div>
+                    <p className="rc-text">{r.text}</p>
+                    <div className="rc-meta" aria-label="Valutazione">
+                      <div className="rc-stars" aria-hidden="true">
+                        {r.stars}
+                      </div>
+                      <div className="rc-badge">{r.badge}</div>
                     </div>
-                    <div className="rc-badge">Cliente verificato</div>
-                  </div>
-                  <div className="rc-author">
-                    <strong>Location da sogno</strong>
-                    <span>Evento privato in sala</span>
-                  </div>
-                </div>
-                <div className="review-card stagger-item">
-                  <div className="rc-quote">“</div>
-                  <p className="rc-text">
-                    Dalla scelta dei piatti al brindisi finale, Miriam e lo staff ci hanno seguito con estrema attenzione.
-                    Piatti curati, porzioni giuste, tempi perfetti.
-                  </p>
-                  <div className="rc-meta" aria-label="Valutazione">
-                    <div className="rc-stars" aria-hidden="true">
-                      ★★★★★
+                    <div className="rc-author">
+                      <strong>{r.title}</strong>
+                      <span>{r.context}</span>
                     </div>
-                    <div className="rc-badge">Cliente verificato</div>
                   </div>
-                  <div className="rc-author">
-                    <strong>Cucina e accoglienza</strong>
-                    <span>Cena tra amici</span>
-                  </div>
-                </div>
-                <div className="review-card stagger-item">
-                  <div className="rc-quote">“</div>
-                  <p className="rc-text">
-                    Abbiamo gestito tutto in anticipo. La sera dell'evento era già tutto pronto, senza imprevisti e con una
-                    magia unica per la nostra laurea.
-                  </p>
-                  <div className="rc-meta" aria-label="Valutazione">
-                    <div className="rc-stars" aria-hidden="true">
-                      ★★★★★
+                ))}
+              </div>
+
+              {/* Mobile: vertical marquee */}
+              <div
+                className={`reviews-marquee ${isReviewsPaused ? "is-paused" : ""}`}
+                onPointerDown={() => setIsReviewsPaused(true)}
+                onPointerUp={() => setIsReviewsPaused(false)}
+                onPointerCancel={() => setIsReviewsPaused(false)}
+                onPointerLeave={() => setIsReviewsPaused(false)}
+                aria-label="Recensioni in scorrimento">
+
+                {([
+                  { speed: "slow", items: EDEN_REVIEWS.filter((_, i) => i % 2 === 0) },
+                  { speed: "fast", items: EDEN_REVIEWS.filter((_, i) => i % 2 === 1) },
+                ] as const).map((col) => (
+                  <div key={col.speed} className="reviews-marquee-col" data-speed={col.speed}>
+                    <div className="reviews-marquee-track">
+                      {[...col.items, ...col.items].map((r, idx) => (
+                        <div key={`${col.speed}-${r.title}-${idx}`} className="review-card">
+                          <div className="rc-quote">“</div>
+                          <p className="rc-text">{r.text}</p>
+                          <div className="rc-meta" aria-label="Valutazione">
+                            <div className="rc-stars" aria-hidden="true">
+                              {r.stars}
+                            </div>
+                            <div className="rc-badge">{r.badge}</div>
+                          </div>
+                          <div className="rc-author">
+                            <strong>{r.title}</strong>
+                            <span>{r.context}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="rc-badge">Cliente verificato</div>
                   </div>
-                  <div className="rc-author">
-                    <strong>Festa impeccabile</strong>
-                    <span>Festa di Laurea</span>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </section>
