@@ -1,78 +1,79 @@
 
-Obiettivo
-- Ripristinare l’accesso a /admin senza loop/redirect e far funzionare la tab “Utenti” (lista + cancellazione) che dipende dal ruolo admin.
-- Far sì che non ricapiti il caos “utente giusto ma ruolo assegnato all’UUID sbagliato”.
+Obiettivo (come da tua richiesta)
+- “Togliere l’accesso all’admin” adesso: nessuno deve poter entrare in /admin e /admin/login.
+- Più avanti: riattivare l’admin usando **l’autenticazione standard** (email/password) e assegnare il ruolo admin **solo** alle email/utenti che mi indichi, mantenendo i ruoli nella tabella separata `user_roles` (senza scorciatoie insicure).
 
-Cosa sta succedendo (diagnosi basata su log + DB)
-- Nel database c’è UNA sola riga in `public.user_roles`:
-  - `user_id = a823052b-6989-4c40-a862-9344ae1d88a7`, `role = admin`.
-- Ma l’utente con cui stai facendo login adesso è:
-  - `user_id = 893b45cc-7f12-4c9f-abc6-48bf35d12109` (email: `admin@edenwinefood.it`).
-- Il check `has_role(893b..., 'admin')` risponde `false` (lo si vede anche dalle request recenti).
-- Quindi:
-  - il login con password può anche andare a buon fine,
-  - però `ProtectedAdminRoute`/`useAdminAuthGuard` ti rimbalzano perché `isAdmin` resta false,
-  - e anche la funzione backend `admin-users` risponde 403 perché verifica admin server-side con l’UUID del token.
+Stato attuale (perché oggi è “sbloccabile”)
+- L’accesso a `/admin` è protetto da `ProtectedAdminRoute` → `useAdminAuthGuard` → `has_role(userId, 'admin')`.
+- Se esiste almeno un record `user_roles` con `role = 'admin'`, quell’utente può entrare (quindi al momento l’admin è “attivo”).
+- Tu hai chiesto esplicitamente:
+  1) Nascondere /admin
+  2) Quando lo rimettiamo: admin assegnato su email (consigliato)
+  3) Rimuovere tutti gli admin dal backend (nessun admin “di backup”)
 
-Perché è successo
-- Hai creato/ottenuto più account admin “di prova” (o con email molto simili) e io ho bootstrapppato il ruolo admin sull’UUID sbagliato (quello che risultava dai log di un tentativo precedente).
-- In particolare si vedono email simili nei log storici (ed è facilissimo confondersi). Il risultato è che il ruolo è sul vecchio utente, mentre tu stai loggando con un altro.
+Cosa farò (in ordine, semplice e verificabile)
 
-Cosa farò (implementazione) — passi piccoli e verificabili
+1) Disabilitare l’admin lato dati (revoca totale)
+- Eseguire una modifica dati (non schema) per rimuovere TUTTI i ruoli admin:
+  - `DELETE FROM public.user_roles WHERE role = 'admin';`
+- Risultato atteso:
+  - Anche se qualcuno riuscisse ad arrivare su `/admin`, `has_role(..., 'admin')` risulterà sempre `false` e quindi l’accesso verrà negato.
+  - Anche la funzione backend “admin-users” continuerà ad essere sicura: senza admin, risponderà 403.
 
-1) Fix immediato (dato/ruolo): assegno admin all’utente che stai usando ORA
-- Inserisco in `public.user_roles` una riga:
-  - `user_id = 893b45cc-7f12-4c9f-abc6-48bf35d12109`
-  - `role = 'admin'`
-- Lo faccio in modo “safe”:
-  - se esiste già, non duplica (la tabella ha vincolo unique (user_id, role)).
-- Verifica:
-  - ripeto `rpc/has_role` per 893b... e deve tornare `true`.
-  - dopo refresh, /admin deve aprirsi senza redirect a /admin/login.
+2) Nascondere completamente le pagine /admin e /admin/login lato app (come hai scelto tu)
+- Modificare il routing in `src/App.tsx` per rimuovere (o rendere irraggiungibili) queste route:
+  - `/admin`
+  - `/admin/login`
+- Opzione concreta che implementerò:
+  - Eliminare proprio le `<Route path="/admin/login" ...>` e `<Route path="/admin" ...>` così finiscono nel catch-all `*` e mostrano NotFound.
+- Risultato atteso:
+  - Visitando `/admin` o `/admin/login` si ottiene NotFound (quindi “accesso tolto” anche a livello UI/URL).
 
-2) (Opzionale ma consigliato) Pulizia: rimuovo admin dal vecchio UUID se non ti serve
-- Se `a823052b-...` è solo un test, tolgo il ruolo admin da quell’utente (DELETE da `public.user_roles` per quell’UUID).
-- Questo riduce rischio di “admin fantasma” rimasti in giro.
-- Nota: lo faccio solo dopo che confermi che quell’account non ti serve.
+3) (Consigliato) Chiudere anche i “punti d’ingresso” nel testo UI (prevenzione confusione)
+- In questa fase, se ci sono link verso /admin (non ne ho visti nell’estratto, ma lo verifico con una ricerca), li rimuovo o li nascondo.
+- Scopo: evitare che tu o altri ci clicchino e finiscano su NotFound “per sbaglio”.
 
-3) Rendere “anti-inculata” il login admin: mostrare chiaramente quale account è loggato e se è admin
-Stato attuale:
-- `AdminLogin.tsx` già mostra un toast con “User ID” dopo login.
-Problema:
-- Il toast si perde e non aiuta quando poi vieni redirectato.
-Miglioria che implementerò:
-- In `/admin/login` aggiungo un riquadro “Stato sessione” sempre visibile:
-  - Email loggata (se presente)
-  - User ID (copiabile)
-  - Esito “Admin: sì/no” (chiamando `has_role` in pagina login)
-  - Se “Admin: no”, mostro un messaggio chiaro: “Sei autenticato ma non hai i permessi admin”.
-Risultato: se in futuro fai login con l’account sbagliato, te ne accorgi subito senza impazzire.
+Come lo rimetteremo dopo (riattivazione con le tue credenziali, in modo sicuro)
+4) Riattivazione routes
+- Quando mi dici “ok, riapriamo l’admin”:
+  - ripristino le route `/admin/login` e `/admin` in `src/App.tsx`.
 
-4) Verifica che la tab “Utenti” funzioni davvero (lista e cancellazione)
-- Una volta che 893b... è admin:
-  - `admin-users` (funzione backend) deve tornare 200 su GET.
-  - La tab “Utenti” in `AdminDashboard.tsx` deve popolarsi.
-- Testo anche la delete:
-  - seleziono 1 utente test e provo cancellazione.
-  - verifico che “self-delete” sia bloccato (già implementato nella funzione backend: se `userId === requesterId` → 400).
+5) Accesso admin “con credenziali che mi dai tu” (modo corretto e sicuro)
+- Non mi serve (e idealmente non voglio) che tu mi passi la password in chat.
+- Flusso consigliato:
+  1) Tu fai signup/login con la tua email (quella “ufficiale admin”) dalla pagina admin login quando la riabilitiamo.
+  2) Mi dici quale email deve essere admin (o me ne dai una lista).
+  3) Io assegno `role='admin'` all’UUID di quell’utente inserendo la riga in `public.user_roles` (ruolo in tabella separata, come richiesto).
+- Se preferisci proprio “ti do io le credenziali” (email+password) lo posso fare, ma:
+  - la password in chat è una pessima pratica (rimane nelle conversazioni).
+  - quindi ti proporrò comunque di fare tu signup/reset password e io mi limito a mettere il ruolo.
 
-5) Checklist end-to-end (quella che ti chiedo di fare anche tu)
-- Login:
-  - fai login con `admin@edenwinefood.it`
-  - vai su `/admin` e resta dentro.
-- Tab Utenti:
-  - apri tab “Utenti”
-  - vedi la lista
-  - cancelli 1 utente test
-  - fai refresh e verifichi che è sparito.
+6) (Hardening) Evitare che altri creino account per tentare di diventare admin
+- Già oggi: creare account NON dà admin automaticamente (il ruolo lo mettiamo solo noi su `user_roles`).
+- Ulteriore misura quando riattiviamo:
+  - togliere/limitare la modalità “signup” dalla pagina admin login (così non invitiamo altra gente a registrarsi da lì).
+  - lasciare solo login + “password dimenticata”.
+  - (Se serve) mantenere una whitelist di email consentite a vedere la pagina admin login, ma senza mettere nulla in storage client (solo gating UI; l’autorizzazione vera resta `has_role` server-side).
 
-Ambiguità minima da chiarire (solo per la pulizia)
-- Vuoi che rimuova il ruolo admin dall’utente vecchio `a823052b-...` oppure lo tieni (es. come “backup admin”)?
+Verifiche (checklist rapida)
+- Subito dopo 1) + 2):
+  - Apri `/admin` → NotFound
+  - Apri `/admin/login` → NotFound
+  - Nessuno risulta admin perché `user_roles` non contiene `role='admin'`
 
-Dettagli tecnici (per trasparenza)
-- Non tocchiamo `auth.users`, né salviamo ruoli nel profilo: rimane tutto nella tabella separata `public.user_roles` e la verifica permessi avviene server-side via `has_role()`.
-- La funzione backend `admin-users` è già corretta come modello di sicurezza: valida token e poi verifica admin dal database usando una chiave server. Il problema attuale è solo che l’utente loggato non aveva il ruolo.
+Dettagli tecnici (trasparenza)
+- File coinvolti:
+  - `src/App.tsx` (routing: rimuovere /admin e /admin/login)
+  - Eventuali link/menu che puntano a /admin (se esistono)
+- Dati coinvolti:
+  - `public.user_roles` (cancellazione record con role='admin')
+- Sicurezza rispettata:
+  - Ruoli restano in tabella separata `user_roles`
+  - Nessun controllo admin via localStorage/sessionStorage o credenziali hardcoded
+  - Validazione admin sempre server-side via `has_role`
 
-Output atteso
-- /admin finalmente si apre e non ti prende per il culo.
-- La tab “Utenti” mostra gli account creati e puoi cancellarli selezionandoli dalla lista.
+Nota importante su “togliere accesso”
+- Con la combinazione “route nascoste” + “nessun admin nel backend”, anche se qualcuno conosce l’URL o prova chiamate dirette, non ottiene privilegi.
+
+Se in futuro vuoi anche “spegnere” completamente le funzioni admin lato backend (non solo 403), lo possiamo fare come step extra, ma non è necessario per la sicurezza: senza ruoli admin, sono già bloccate.
+
