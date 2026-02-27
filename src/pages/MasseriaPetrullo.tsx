@@ -3,7 +3,9 @@ import "@/styles/eden.css";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import EdenTransitionLink from "@/components/eden/EdenTransitionLink";
 import EdenFallingLeavesCanvas from "@/components/eden/EdenFallingLeavesCanvas";
+import EdenFooter from "@/components/eden/EdenFooter";
 import masseriaTitle from "@/assets/masseria-title.png";
+import { getSetting, useSiteSettings } from "@/hooks/content/useSiteSettings";
 
 
 type PolaroidItem = {
@@ -28,7 +30,12 @@ export default function MasseriaPetrullo() {
 
   useRevealOnScroll(".reveal-on-scroll, .reveal-stagger, .masseria-polaroid");
 
+  const settings = useSiteSettings();
+
   const waUrl = useMemo(() => {
+    const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
+    const digits = String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524";
+
     const msg = [
       "Ciao EDEN, vorrei informazioni per un EVENTO PRIVATO presso MASSERIA PETRULLO.",
       "",
@@ -39,8 +46,8 @@ export default function MasseriaPetrullo() {
       "Note:",
     ].join("\n");
 
-    return `https://wa.me/393497152524?text=${encodeURIComponent(msg)}`;
-  }, []);
+    return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+  }, [settings.data]);
 
   const polaroids: PolaroidItem[] = useMemo(
     () => [
@@ -195,6 +202,10 @@ export default function MasseriaPetrullo() {
           <div className="eden-shell">
             <p className="masseria-note-text">Solo per eventi privati. Minimo 50 persone.</p>
           </div>
+        </section>
+
+        <section className="mt-16">
+          <EdenFooter mode="subpage" />
         </section>
       </main>
     </div>

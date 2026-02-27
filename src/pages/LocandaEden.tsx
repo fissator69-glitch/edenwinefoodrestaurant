@@ -3,7 +3,9 @@ import "@/styles/eden.css";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import EdenTransitionLink from "@/components/eden/EdenTransitionLink";
 import EdenFallingLeavesCanvas from "@/components/eden/EdenFallingLeavesCanvas";
+import EdenFooter from "@/components/eden/EdenFooter";
 import locandaTitle from "@/assets/locanda-title.png";
+import { getSetting, useSiteSettings } from "@/hooks/content/useSiteSettings";
 
 type MenuItem = {
   name: string;
@@ -39,7 +41,12 @@ export default function LocandaEden() {
 
   useRevealOnScroll(".reveal-on-scroll, .reveal-stagger, .gallery-item");
 
+  const settings = useSiteSettings();
+
   const waUrl = useMemo(() => {
+    const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
+    const digits = String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524";
+
     const msg = [
       "Ciao EDEN, vorrei prenotare per la LOCANDA.",
       "",
@@ -50,8 +57,8 @@ export default function LocandaEden() {
       "Note:",
     ].join("\n");
 
-    return `https://wa.me/393497152524?text=${encodeURIComponent(msg)}`;
-  }, []);
+    return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
+  }, [settings.data]);
 
   const menuSections: MenuSection[] = useMemo(
     () => [
@@ -354,8 +361,11 @@ export default function LocandaEden() {
             </div>
           </div>
         </section>
+
+        <section className="mt-16">
+          <EdenFooter mode="subpage" />
+        </section>
       </main>
     </div>
   );
 }
-
