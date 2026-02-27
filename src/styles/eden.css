@@ -2687,20 +2687,13 @@ body.eden-body #root {
 
   .reviews-marquee {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    height: clamp(560px, 70vh, 720px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    height: clamp(560px, 70vh, 740px);
     overflow: hidden;
     position: relative;
     border-radius: 18px;
     isolation: isolate;
-  }
-
-  /* 1 colonna su telefoni piccoli: card più larghe e leggibili */
-  @media (max-width: 420px) {
-    .reviews-marquee {
-      grid-template-columns: 1fr;
-    }
   }
 
   .reviews-marquee::before,
@@ -2709,7 +2702,7 @@ body.eden-body #root {
     position: absolute;
     left: 0;
     right: 0;
-    height: 52px;
+    height: 32px;
     z-index: 2;
     pointer-events: none;
   }
@@ -2718,8 +2711,8 @@ body.eden-body #root {
     top: 0;
     background: linear-gradient(
       180deg,
-      hsl(var(--eden-night) / 0.92) 0%,
-      hsl(var(--eden-night) / 0.35) 45%,
+      hsl(var(--eden-night) / 0.9) 0%,
+      hsl(var(--eden-night) / 0.4) 55%,
       transparent 100%
     );
   }
@@ -2728,8 +2721,8 @@ body.eden-body #root {
     bottom: 0;
     background: linear-gradient(
       0deg,
-      hsl(var(--eden-night) / 0.92) 0%,
-      hsl(var(--eden-night) / 0.35) 45%,
+      hsl(var(--eden-night) / 0.9) 0%,
+      hsl(var(--eden-night) / 0.4) 55%,
       transparent 100%
     );
   }
@@ -2740,21 +2733,21 @@ body.eden-body #root {
 
   .reviews-marquee-track {
     display: grid;
-    gap: 14px;
+    gap: 16px;
     padding: 10px;
-    padding-block: 44px;
+    padding-block: 60px;
     will-change: transform;
     animation: reviews-marquee-up var(--dur) linear infinite;
     animation-delay: calc(var(--delay) * -1s);
   }
 
   .reviews-marquee-col[data-speed="slow"] {
-    --dur: 42s;
-    --delay: 9;
+    --dur: 60s;
+    --delay: 12;
   }
 
   .reviews-marquee-col[data-speed="fast"] {
-    --dur: 32s;
+    --dur: 46s;
     --delay: 0;
   }
 
@@ -2764,34 +2757,12 @@ body.eden-body #root {
     animation-play-state: paused;
   }
 
-  /* Anti-overflow/clipping nelle colonne strette */
+  /* Anti-overflow/clipping nelle colonne strette + stabilità: niente micro-parallax sulle singole card */
   .reviews-marquee .review-card {
     min-width: 0;
-  }
-
-  /* Parallax/float visibile: micro-movimento delle card (indipendente dallo scorrimento) */
-  .reviews-marquee .review-card {
-    --float-dur: 5.2s;
-    --float-delay: -0.6s;
-    will-change: transform;
-    transform: translate3d(0, 0, 0);
-    animation: reviews-card-parallax var(--float-dur) ease-in-out infinite;
-    animation-delay: var(--float-delay);
-  }
-
-  .reviews-marquee .reviews-marquee-track .review-card:nth-child(3n + 1) {
-    --float-dur: 6.4s;
-    --float-delay: -1.4s;
-  }
-
-  .reviews-marquee .reviews-marquee-track .review-card:nth-child(3n + 2) {
-    --float-dur: 4.8s;
-    --float-delay: -0.2s;
-  }
-
-  .reviews-marquee .reviews-marquee-track .review-card:nth-child(3n + 3) {
-    --float-dur: 5.6s;
-    --float-delay: -0.9s;
+    will-change: auto;
+    transform: none;
+    animation: none;
   }
 
   .reviews-marquee:hover .review-card,
@@ -2799,9 +2770,27 @@ body.eden-body #root {
     animation-play-state: paused;
   }
 
-  /* Card più compatte sul marquee mobile */
+  /* Su mobile nel marquee: niente hover-lift (evita micro-tagli) */
+  .reviews-marquee .review-card:hover {
+    transform: none;
+  }
+
+  /* Tipografia mobile: leggibile in due colonne */
   .review-card {
-    padding: 22px;
+    padding: 20px;
+  }
+
+  .rc-quote {
+    font-size: 2.6rem;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    opacity: 0.35;
+  }
+
+  .rc-text {
+    font-size: 0.88rem;
+    line-height: 1.85;
+    margin-bottom: 22px;
   }
 
   .stat-val {
