@@ -4,7 +4,7 @@ import { useAdminAuthGuard } from "@/hooks/useAdminAuthGuard";
 export default function ProtectedAdminRoute({ children }: PropsWithChildren) {
   const state = useAdminAuthGuard({ redirectTo: "/admin/login", requireAdmin: true });
 
-  if (state.status === "loading") {
+  if (state.status === "loading" || (state.status === "authenticated" && state.isAdmin === null)) {
     return (
       <div className="min-h-screen bg-background text-foreground grid place-items-center">
         <div className="text-sm text-muted-foreground">Caricamento…</div>
@@ -13,7 +13,7 @@ export default function ProtectedAdminRoute({ children }: PropsWithChildren) {
   }
 
   // redirect handled by hook
-  if (state.status !== "authenticated" || !state.isAdmin) return null;
+  if (state.status !== "authenticated" || state.isAdmin !== true) return null;
 
   return <>{children}</>;
 }

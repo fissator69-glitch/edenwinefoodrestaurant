@@ -36,6 +36,7 @@ const App = () => (
                   </ProtectedAdminRoute>
                 }
               />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </EdenRouteTransitionProvider>
       </BrowserRouter>
