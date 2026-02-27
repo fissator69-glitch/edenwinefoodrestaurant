@@ -1,82 +1,64 @@
 
-Obiettivo richiesto
-- Rendere **/admin** “pubblica” con un pulsante “Entra” senza email né password.
+Obiettivo
+- Far sì che con le credenziali **admin@edenwinefood.it / Eden@2026** tu entri davvero in **/admin** (senza rimanere bloccato su /admin/login).
+- Mantenere la regola: entra solo chi ha ruolo **admin** nella tabella separata `user_roles` (già fatto).
 
-Vincolo non negoziabile (sicurezza)
-- Non posso rendere pubblica una pagina che:
-  - modifica contenuti nel database,
-  - carica file,
-  - gestisce utenti (lista/cancellazione),
-  perché equivale a dare a chiunque controllo completo del sito e degli account.
-- Inoltre, anche se “tanto non ci entra nessuno”, l’URL pubblicato è accessibile a chiunque lo scopra (crawler, link, log, condivisioni, ecc.). Questa è una vulnerabilità critica.
+Diagnosi (perché ora “non entra” anche se il ruolo è OK)
+- Dai log di rete si vede chiaramente che:
+  - login riuscito (status 200) con password corretta (in una richiesta risulta Eden@2025, ma il punto è che una delle prove ha fatto login OK),
+  - `rpc/has_role` risponde `true` per il tuo user id.
+- Quindi backend/ruolo sono a posto.
+- Il blocco è molto probabilmente un **race condition nel frontend**: `useAdminAuthGuard` fa così:
+  1) quando vede una sessione imposta subito `isAdmin: false`
+  2) parte l’`checkAdmin()` async
+  3) nel frattempo `shouldRedirect` vede “authenticated ma non admin” → **redirect immediato a /admin/login**
+  4) quando arriva `isAdmin: true` è troppo tardi perché sei già stato riportato alla login.
+- Risultato percepito: premi “Entra”, vedi toast con User ID, ma resti su /admin/login.
 
-Cosa sta succedendo adesso (perché “non ti fa entrare”)
-- `/admin` è protetta da `ProtectedAdminRoute` che richiede **login + ruolo admin** (`has_role(userId,'admin')`).
-- Attualmente la tabella `user_roles` non contiene admin (li abbiamo rimossi), quindi anche se fai login non risulti admin e non entri.
-- In più, nel router manca la route `*` (catch-all) verso `NotFound`: è un bug collaterale del diff che va ripristinato per gestire le URL non mappate in modo pulito.
+Soluzione tecnica (corretta “come si deve”)
+- Cambiare lo stato del guard per distinguere chiaramente:
+  - “utente autenticato ma sto ancora verificando se è admin” (NON devo redirectare)
+  - “utente autenticato e NON è admin” (qui sì che redirecto)
+- In pratica: introdurre uno stato `isAdmin: null` oppure uno status esplicito tipo `"checking_role"` e trattarlo come loading.
 
-Soluzione che soddisfa il bisogno pratico (“entrare subito”) SENZA rendere pubblico l’admin
-Scelgo un approccio a “frizione minima” ma sicuro: “entra con 1 click” tramite provider esterno oppure magic link. Entrambi evitano password, ma restano autenticazione vera.
+Modifiche previste (file e cosa cambierà)
+1) `src/hooks/useAdminAuthGuard.ts`
+   - Cambiare il tipo `AdminAuthState` per includere lo stato di verifica ruolo:
+     - Esempio: `isAdmin: null` durante la verifica (oppure aggiungere `status: "checking"`).
+   - Quando arriva la sessione:
+     - impostare `isAdmin: null` (non false)
+     - lanciare `checkAdmin()`
+     - aggiornare poi `isAdmin: true/false` al termine
+   - Aggiornare `shouldRedirect`:
+     - se `isAdmin === null` → NON redirectare (resta in loading)
+     - redirect solo quando `isAdmin === false` e `requireAdmin === true`.
 
-Opzioni (ti propongo entrambe; implemento quella che approvi dopo questo piano)
-A) “Entra con Google” (1 click, zero password)
-- Aggiungo un bottone “Entra con Google” in `/admin/login`.
-- Dopo il primo accesso, assegno il ruolo admin alla tua email (in `user_roles` come già previsto).
-- Risultato: esperienza “premi e entri”, ma non pubblica.
+2) `src/components/admin/ProtectedAdminRoute.tsx`
+   - Trattare anche lo stato “verifica ruolo in corso” come loading:
+     - mostrare “Caricamento…” finché `isAdmin` non è determinato.
+   - Renderizzare la dashboard solo quando `status === "authenticated"` e `isAdmin === true`.
 
-B) “Entra con link” (magic link via email, zero password)
-- Aggiungo “Entra con link” (inserisci solo email, ricevi link).
-- Assegno admin alla tua email.
-- Risultato: niente password, ma serve email.
+3) `src/App.tsx` (piccolo fix qualità)
+   - Ripristinare la route catch-all:
+     - `<Route path="*" element={<NotFound />} />`
+   - Non è la causa del blocco admin, ma evita comportamenti strani su URL non mappate.
 
-Nota: La variante “nessuna email e nessuna password” implica per forza un segreto alternativo (token, PIN, basic auth, ecc.). Anche quello è una credenziale: se è pubblico e senza credenziali, è admin aperto.
+Verifica end-to-end (cosa farai tu in preview)
+- Apri `/admin/login`
+- Login con:
+  - email: `admin@edenwinefood.it`
+  - password: `Eden@2026`
+- Atteso:
+  - dopo il click su “Entra” vai su `/admin`
+  - vedi la schermata “Caricamento…” per un attimo (mentre controlla il ruolo)
+  - poi compare la dashboard Admin (Tabs Contatti/Privacy/Footer/Social/Media/Utenti)
+- Controllo finale:
+  - prova a salvare “Contatti” o “Footer” per confermare che le policy admin funzionano.
 
-Implementazione (cosa farei nel codice)
-1) Fix routing generale
-- Ripristinare la route catch-all:
-  - in `src/App.tsx` aggiungere di nuovo: `<Route path="*" element={<NotFound />} />`
-  - mantenendo le route admin esistenti.
+Note importanti (vincoli rispettati)
+- Non verranno mai “hardcodate” le credenziali nel codice.
+- L’accesso resta: login + verifica server-side del ruolo tramite `has_role()` e tabella separata `user_roles` (come richiesto e come da best practice).
 
-2) Rendere chiaro il motivo del blocco (UX)
-- In `src/pages/admin/AdminLogin.tsx` mostrare un messaggio esplicito:
-  - “Per entrare in /admin serve essere admin. Se hai appena creato l’account, devo abilitarti io.”
-- (Opzionale) mostrare lo “stato” (anon / logged / admin) e un pulsante “Copia User ID” per sblocco rapido.
-
-3) Implementare “1 click login” (una delle opzioni A o B)
-A) Google OAuth
-- Aggiungere pulsante che chiama `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } })`
-- Gestire ritorno e redirect a `/admin`.
-
-B) Magic link
-- Aggiungere form email + `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin + '/admin' } })`
-
-4) Abilitazione admin (server-side, in tabella separata)
-- Dopo che accedi una volta, mi dai:
-  - l’email usata, oppure
-  - lo User ID che già la UI ti mostra nel toast.
-- E io inserisco la riga in `public.user_roles (user_id, role='admin')`.
-- (Importante) Non sposto ruoli su profili o tabelle utenti: restano in `user_roles`.
-
-5) Verifica end-to-end (checklist)
-- Vai su `/admin/login`:
-  - premi “Entra con Google” oppure “Entra con link”
-  - conferma che torni nell’app
-- Prima di assegnare ruolo:
-  - `/admin` non deve aprirsi (corretto)
-- Dopo assegnazione ruolo:
-  - `/admin` apre la dashboard
-  - salvataggi su `site_settings`, `site_footer`, `social_links` funzionano
-  - “Utenti” carica (funzione backend “admin-users” = 200)
-
-File coinvolti
-- `src/App.tsx` (ripristino `* -> NotFound`)
-- `src/pages/admin/AdminLogin.tsx` (aggiunta login 1-click + messaggi stato)
-- (Nessun cambiamento a `client.ts` / `types.ts`)
-
-Decisione minima necessaria per procedere
-- Scegli quale “tasto ENTRA” vuoi:
-  - Google (1 click, niente password)
-  - Link via email (niente password)
-
-Se insisti su “pubblico senza accesso”
-- Posso al massimo creare una pagina pubblica tipo `/admin-preview` che mostra solo un’anteprima non interattiva (read-only) senza accesso a funzioni destructive; ma non posso esporre il vero pannello che modifica backend e utenti.
+Output atteso dopo le modifiche
+- Il comportamento “vedo User ID ma torno alla login” sparisce.
+- `/admin` diventa accessibile stabilmente per l’account admin, e bloccata per tutti gli altri.
