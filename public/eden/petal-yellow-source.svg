@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360" width="240" height="360">
+  <title>Petal yellow source (EDEN)</title>
+  <!-- Transparent background; keep saturated yellows so EDEN saturation-key doesn't erase the petal. -->
+  <defs>
+    <linearGradient id="petalGradYellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD34D"/>
+      <stop offset="1" stop-color="#FFEE8A"/>
+    </linearGradient>
+    <linearGradient id="petalRibYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF8C8" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#FFF8C8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Droplet-like petal, slightly different contour for variety -->
+  <path
+    d="M118 16
+       C156 46 188 104 186 166
+       C184 236 150 304 122 344
+       C86 298 56 240 54 174
+       C52 112 78 52 118 16 Z"
+    fill="url(#petalGradYellow)"
+    fill-rule="evenodd"/>
+
+  <!-- Inner highlight/rib -->
+  <path
+    d="M118 46
+       C128 98 128 136 118 178
+       C106 232 102 270 114 316"
+    fill="none"
+    stroke="url(#petalRibYellow)"
+    stroke-width="14"
+    stroke-linecap="round"
+    opacity="0.95"/>
+
+  <!-- Edge shimmer -->
+  <path
+    d="M88 132 C76 170 86 214 110 260"
+    fill="none"
+    stroke="#FFF1A9"
+    stroke-opacity="0.2"
+    stroke-width="10"
+    stroke-linecap="round"/>
+</svg>

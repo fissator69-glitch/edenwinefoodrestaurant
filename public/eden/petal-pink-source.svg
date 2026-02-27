@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360" width="240" height="360">
+  <title>Petal pink source (EDEN)</title>
+  <!-- Transparent background; keep saturated pinks so EDEN saturation-key doesn't erase the petal. -->
+  <defs>
+    <linearGradient id="petalGradPink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FF5FA2"/>
+      <stop offset="1" stop-color="#FF8BC0"/>
+    </linearGradient>
+    <linearGradient id="petalRibPink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE1F0" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#FFE1F0" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Droplet-like petal with slight asymmetry and gentle twist -->
+  <path
+    d="M126 18
+       C165 54 190 106 186 164
+       C181 236 147 304 118 342
+       C82 295 55 235 54 170
+       C53 108 84 54 126 18 Z"
+    fill="url(#petalGradPink)"
+    fill-rule="evenodd"/>
+
+  <!-- Inner highlight/rib -->
+  <path
+    d="M124 46
+       C132 92 132 132 124 174
+       C114 224 106 262 114 314"
+    fill="none"
+    stroke="url(#petalRibPink)"
+    stroke-width="14"
+    stroke-linecap="round"
+    opacity="0.95"/>
+
+  <!-- Edge shimmer (still saturated-ish, avoid gray) -->
+  <path
+    d="M160 122 C170 162 160 208 140 256"
+    fill="none"
+    stroke="#FFD0E6"
+    stroke-opacity="0.22"
+    stroke-width="10"
+    stroke-linecap="round"/>
+</svg>
