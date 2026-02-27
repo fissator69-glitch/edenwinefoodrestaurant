@@ -45,7 +45,7 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password: values.password });
       if (error) throw error;
       toast({ title: "Password aggiornata" });
-      navigate("/", { replace: true });
+      navigate("/admin/login", { replace: true });
     } catch (e: any) {
       toast({ title: "Errore", description: e?.message ?? "Operazione fallita", variant: "destructive" });
     } finally {
@@ -59,14 +59,14 @@ export default function ResetPassword() {
         <div className="mb-8 space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Reset password</h1>
           <p className="text-sm text-muted-foreground">
-            Inserisci una nuova password. Se sei arrivato qui per errore, richiedi di nuovo il reset dalla pagina di accesso.
+            Inserisci una nuova password. Se sei arrivato qui per errore, richiedi di nuovo il reset da <code className="font-mono">/admin/login</code>.
           </p>
         </div>
 
         <div className="rounded-lg border bg-card text-card-foreground p-6 space-y-4">
           {!canReset ? (
             <div className="rounded-md border bg-muted/30 p-4 text-sm">
-              Link non valido o scaduto (manca <code className="font-mono">type=recovery</code>).
+              Link non valido o scaduto (manca <code className="font-mono">type=recovery</code>). Torna al login e usa “Password dimenticata?”.
             </div>
           ) : (
             <Form {...form}>
@@ -106,8 +106,8 @@ export default function ResetPassword() {
             </Form>
           )}
 
-          <Button variant="outline" className="w-full" onClick={() => navigate("/")} type="button">
-            Torna alla home
+          <Button variant="outline" className="w-full" onClick={() => navigate("/admin/login")} type="button">
+            Torna al login
           </Button>
         </div>
       </div>

@@ -8,7 +8,10 @@ import Index from "./pages/Index";
 import LocandaEden from "./pages/LocandaEden";
 import MasseriaPetrullo from "./pages/MasseriaPetrullo";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import ResetPassword from "./pages/admin/ResetPassword";
+import ProtectedAdminRoute from "./components/admin/ProtectedAdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,9 +26,16 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/locanda-eden" element={<LocandaEden />} />
               <Route path="/masseria-petrullo" element={<MasseriaPetrullo />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedAdminRoute>
+                    <AdminDashboard />
+                  </ProtectedAdminRoute>
+                }
+              />
             </Routes>
           </EdenRouteTransitionProvider>
       </BrowserRouter>
