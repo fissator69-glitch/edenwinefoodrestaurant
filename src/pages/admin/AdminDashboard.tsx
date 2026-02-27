@@ -8,14 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import AdminLinkCtaEditor from "@/components/admin/AdminLinkCtaEditor";
+import AdminLocandaEditor from "@/components/admin/AdminLocandaEditor";
+import AdminEdenEditor from "@/components/admin/AdminEdenEditor";
+import AdminMasseriaEditor from "@/components/admin/AdminMasseriaEditor";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import { useSiteSettings } from "@/hooks/content/useSiteSettings";
 import { useSocialLinks } from "@/hooks/content/useSocialLinks";
 import { useSiteFooter } from "@/hooks/content/useSiteFooter";
 import { useMediaAssets } from "@/hooks/content/useMediaAssets";
+import { publicUrl } from "@/lib/media";
 
 function jsonSafeParse(text: string) {
   try {
@@ -47,13 +53,18 @@ async function deleteUser(userId: string) {
   if (!data?.ok) throw new Error("Delete failed");
 }
 
+type MediaPage = "eden" | "locanda" | "masseria";
+type MediaFilter = "all" | MediaPage | "unassigned";
+
 export default function AdminDashboard() {
   const qc = useQueryClient();
+
   const settings = useSiteSettings();
   const footer = useSiteFooter();
   const socials = useSocialLinks({ includeDisabled: true });
   const media = useMediaAssets();
 
+  // --- SITO (globale)
   const [contactPhone, setContactPhone] = useState("+390805248160");
   const [whatsPhone, setWhatsPhone] = useState("393497152524");
   const [address, setAddress] = useState("Via Santa Maria della Stella, 66\n70010 Adelfia (BA)");
@@ -85,10 +96,9 @@ export default function AdminDashboard() {
     ),
   );
 
-  // Utenti
+  // --- UTENTI
   const [userSearch, setUserSearch] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<Record<string, boolean>>({});
-
   const usersQuery = useQuery({ queryKey: ["admin_users"], queryFn: listUsers });
 
   const deleteMany = useMutation({
@@ -112,7 +122,10 @@ export default function AdminDashboard() {
     return all.filter((u) => (u.email ?? "").toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
   }, [userSearch, usersQuery.data]);
 
-  const selectedIds = useMemo(() => Object.keys(selectedUserIds).filter((id) => selectedUserIds[id]), [selectedUserIds]);
+  const selectedIds = useMemo(
+    () => Object.keys(selectedUserIds).filter((id) => selectedUserIds[id]),
+    [selectedUserIds],
+  );
 
   // hydrate from backend (best-effort)
   useMemo(() => {
@@ -190,7 +203,10 @@ export default function AdminDashboard() {
     }
   }
 
-  async function updateSocial(id: string, patch: Partial<{ platform: string; url: string; order: number; enabled: boolean }>) {
+  async function updateSocial(
+    id: string,
+    patch: Partial<{ platform: string; url: string; order: number; enabled: boolean }>,
+  ) {
     try {
       const { error } = await supabase.from("social_links").update(patch).eq("id", id);
       if (error) throw error;
@@ -210,6 +226,30 @@ export default function AdminDashboard() {
     }
   }
 
+  // --- MEDIA
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>("eden");
+  const [uploadPage, setUploadPage] = useState<MediaFilter>("eden");
+  const [mediaLimit, setMediaLimit] = useState(30);
+
+  const filteredMedia = useMemo(() => {
+    const all = media.data ?? [];
+    if (mediaFilter === "all") return all;
+    if (mediaFilter === "unassigned") return all.filter((m) => (m.page ?? null) === null);
+    return all.filter((m) => (m.page ?? null) === mediaFilter);
+  }, [media.data, mediaFilter]);
+
+  async function updateMediaPage(assetId: string, next: MediaFilter) {
+    try {
+      const page = next === "unassigned" ? null : next === "all" ? null : next;
+      const { error } = await supabase.from("media_assets").update({ page }).eq("id", assetId);
+      if (error) throw error;
+      await qc.invalidateQueries({ queryKey: ["media_assets"] });
+      toast({ title: "Aggiornato" });
+    } catch (e: any) {
+      toast({ title: "Errore", description: e?.message ?? "Aggiornamento fallito", variant: "destructive" });
+    }
+  }
+
   async function uploadMedia(file: File) {
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
@@ -221,7 +261,11 @@ export default function AdminDashboard() {
       });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("media_assets").insert({ bucket: "site-media", path, alt: null, tags: [] });
+      const page = uploadPage === "unassigned" || uploadPage === "all" ? null : uploadPage;
+
+      const { error: insErr } = await supabase
+        .from("media_assets")
+        .insert({ bucket: "site-media", path, alt: null, tags: [], page });
       if (insErr) throw insErr;
 
       await qc.invalidateQueries({ queryKey: ["media_assets"] });
@@ -238,29 +282,30 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-8">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
-            <p className="text-sm text-muted-foreground">Modifica contenuti, media e footer (inclusi social con icone).</p>
+            <p className="text-sm text-muted-foreground">Sito / EDEN / Locanda / Masseria / Media / Utenti.</p>
           </div>
           <Button variant="outline" onClick={signOut}>
             Logout
           </Button>
         </div>
 
-        <Tabs defaultValue="settings">
+        <Tabs defaultValue="site">
           <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="settings">Contatti</TabsTrigger>
-            <TabsTrigger value="privacy">Privacy</TabsTrigger>
-            <TabsTrigger value="footer">Footer</TabsTrigger>
-            <TabsTrigger value="social">Social</TabsTrigger>
+            <TabsTrigger value="site">Sito</TabsTrigger>
+            <TabsTrigger value="eden">EDEN</TabsTrigger>
+            <TabsTrigger value="locanda">Locanda</TabsTrigger>
+            <TabsTrigger value="masseria">Masseria</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
             <TabsTrigger value="users">Utenti</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="settings">
+          <TabsContent value="site" className="space-y-6">
             <div className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="text-sm font-semibold">Contatti</div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Telefono (tel:)</div>
@@ -281,28 +326,29 @@ export default function AdminDashboard() {
               </div>
               <Button onClick={saveSettings}>Salva contatti</Button>
             </div>
-          </TabsContent>
 
-          <TabsContent value="privacy">
             <div className="rounded-lg border bg-card p-6 space-y-4">
-              <div className="text-sm font-medium">Testo Privacy & Cookie</div>
+              <div className="text-sm font-semibold">Privacy</div>
               <Textarea value={privacyText} onChange={(e) => setPrivacyText(e.target.value)} className="min-h-[180px]" />
               <Button onClick={saveSettings}>Salva privacy</Button>
             </div>
-          </TabsContent>
 
-          <TabsContent value="footer">
             <div className="rounded-lg border bg-card p-6 space-y-4">
-              <div className="text-sm text-muted-foreground">Per ora il footer è gestito come JSON (massima libertà: “TUTTO”).</div>
-              <Textarea value={footerJson} onChange={(e) => setFooterJson(e.target.value)} className="min-h-[280px] font-mono text-xs" />
+              <div className="text-sm font-semibold">Footer (JSON)</div>
+              <Textarea
+                value={footerJson}
+                onChange={(e) => setFooterJson(e.target.value)}
+                className="min-h-[280px] font-mono text-xs"
+              />
               <Button onClick={saveFooter}>Salva footer</Button>
             </div>
-          </TabsContent>
 
-          <TabsContent value="social">
             <div className="rounded-lg border bg-card p-6 space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm text-muted-foreground">Gestisci link social (le icone vengono scelte in base a platform).</div>
+                <div>
+                  <div className="text-sm font-semibold">Social</div>
+                  <div className="text-sm text-muted-foreground">Le icone vengono scelte in base a platform.</div>
+                </div>
                 <Button onClick={addSocial}>Aggiungi</Button>
               </div>
 
@@ -337,38 +383,120 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
+
+            <AdminLinkCtaEditor />
           </TabsContent>
 
-          <TabsContent value="media">
-            <div className="rounded-lg border bg-card p-6 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm text-muted-foreground">Carica foto (bucket: site-media) e riusale nelle pagine.</div>
-                <label className="inline-flex">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) uploadMedia(f);
-                      e.currentTarget.value = "";
-                    }}
-                  />
-                  <Button asChild>
-                    <span>Upload</span>
-                  </Button>
-                </label>
-              </div>
+          <TabsContent value="eden">
+            <AdminEdenEditor />
+          </TabsContent>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(media.data ?? []).slice(0, 20).map((m) => (
-                  <div key={m.id} className="rounded-md border p-3">
-                    <div className="text-xs text-muted-foreground break-all">
-                      {m.bucket}/{m.path}
+          <TabsContent value="locanda">
+            <AdminLocandaEditor />
+          </TabsContent>
+
+          <TabsContent value="masseria">
+            <AdminMasseriaEditor />
+          </TabsContent>
+
+          <TabsContent value="media" className="space-y-4">
+            <div className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <div className="text-sm font-semibold">Libreria Media</div>
+                  <div className="text-sm text-muted-foreground">Filtra per pagina, assegna pagina, e carica con pagina.</div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 sm:items-end">
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Filtro</div>
+                    <Select value={mediaFilter} onValueChange={(v) => setMediaFilter(v as MediaFilter)}>
+                      <SelectTrigger className="sm:w-[220px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="eden">EDEN</SelectItem>
+                        <SelectItem value="locanda">Locanda</SelectItem>
+                        <SelectItem value="masseria">Masseria</SelectItem>
+                        <SelectItem value="unassigned">Non assegnati</SelectItem>
+                        <SelectItem value="all">Tutti</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Upload → pagina</div>
+                    <div className="flex items-center gap-2">
+                      <Select value={uploadPage} onValueChange={(v) => setUploadPage(v as MediaFilter)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="eden">EDEN</SelectItem>
+                          <SelectItem value="locanda">Locanda</SelectItem>
+                          <SelectItem value="masseria">Masseria</SelectItem>
+                          <SelectItem value="unassigned">Non assegnata</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <label className="inline-flex">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) uploadMedia(f);
+                            e.currentTarget.value = "";
+                          }}
+                        />
+                        <Button asChild>
+                          <span>Upload</span>
+                        </Button>
+                      </label>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredMedia.slice(0, mediaLimit).map((m) => {
+                  const src = publicUrl(m.bucket, m.path);
+                  const current = (m.page ?? null) === null ? "unassigned" : (m.page as MediaFilter);
+                  return (
+                    <div key={m.id} className="rounded-md border overflow-hidden bg-card">
+                      <div className="aspect-[4/3] bg-muted">
+                        <img src={src} alt={m.alt ?? m.path} className="h-full w-full object-cover" loading="lazy" />
+                      </div>
+                      <div className="p-3 space-y-2">
+                        <div className="text-xs text-muted-foreground break-all">{m.bucket}/{m.path}</div>
+                        <div className="grid gap-2">
+                          <div className="text-xs text-muted-foreground">Pagina</div>
+                          <Select value={current} onValueChange={(v) => updateMediaPage(m.id, v as MediaFilter)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="eden">EDEN</SelectItem>
+                              <SelectItem value="locanda">Locanda</SelectItem>
+                              <SelectItem value="masseria">Masseria</SelectItem>
+                              <SelectItem value="unassigned">Non assegnata</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredMedia.length > mediaLimit ? (
+                <div className="flex justify-center pt-2">
+                  <Button type="button" variant="outline" onClick={() => setMediaLimit((n) => n + 30)}>
+                    Carica altro
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </TabsContent>
 
@@ -376,7 +504,7 @@ export default function AdminDashboard() {
             <div className="rounded-lg border bg-card p-6 space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="text-sm font-medium">Utenti</div>
+                  <div className="text-sm font-semibold">Utenti</div>
                   <div className="text-sm text-muted-foreground">Lista utenti + cancellazione selettiva (solo admin).</div>
                 </div>
 
@@ -388,34 +516,21 @@ export default function AdminDashboard() {
                     className="sm:w-[320px]"
                   />
 
-                  <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["admin_users"] })} disabled={usersQuery.isFetching}>
+                  <Button
+                    variant="outline"
+                    onClick={() => qc.invalidateQueries({ queryKey: ["admin_users"] })}
+                    disabled={usersQuery.isFetching}
+                  >
                     {usersQuery.isFetching ? "Aggiorno…" : "Aggiorna"}
                   </Button>
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" disabled={selectedIds.length === 0 || deleteMany.isPending}>
-                        Cancella selezionati ({selectedIds.length})
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confermi la cancellazione?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Questa azione elimina definitivamente gli account selezionati. Non puoi cancellare il tuo account.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMany.mutate(selectedIds)}
-                          disabled={deleteMany.isPending}
-                        >
-                          {deleteMany.isPending ? "Cancello…" : "Conferma"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <Button
+                    variant="destructive"
+                    disabled={selectedIds.length === 0 || deleteMany.isPending}
+                    onClick={() => deleteMany.mutate(selectedIds)}
+                  >
+                    {deleteMany.isPending ? "Cancello…" : `Cancella selezionati (${selectedIds.length})`}
+                  </Button>
                 </div>
               </div>
 

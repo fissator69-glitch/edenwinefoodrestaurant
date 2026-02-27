@@ -548,7 +548,14 @@ export default function AdminLocandaEditor() {
         open={picker.open}
         onOpenChange={(v) => setPicker((p) => ({ ...p, open: v }))}
         assets={media.data ?? []}
-        value={picker.index === null ? null : gallery.items[picker.index]?.assetId ? { assetId: gallery.items[picker.index]!.assetId! } : null}
+        pageFilter="locanda"
+        value={
+          picker.index === null
+            ? null
+            : gallery.items[picker.index]?.assetId
+              ? { assetId: gallery.items[picker.index]!.assetId! }
+              : null
+        }
         onPick={(v) => {
           const i = picker.index;
           if (i === null) return;
