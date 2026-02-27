@@ -1,221 +1,129 @@
 
-Obiettivo della richiesta
-- Rendere **Home (/), Locanda (/locanda-eden), Masseria (/masseria-petrullo)** completamente “data‑driven”: hero, testi, menu, vini, gallerie vengono **letti dal database** e, se non presenti, usano i **fallback attuali hardcoded**.
-- In Admin, sostituire l’editor “a JSON” per queste aree con **editor guidati (non JSON)**:
-  - Locanda: **Menu + Carta vini + Gallery** con riordino e preview
-  - Masseria: **Hero + Gallery polaroid + Nota** con riordino e preview
-  - Home: contenuti principali (almeno Hero + eventuali blocchi principali che mi indicherai nella UI)
-- Aggiungere un tab **“Link & CTA”** che permette di gestire da Admin:
-  - template messaggi WhatsApp per Locanda/Masseria (e Home se serve)
-  - link Maps (già in Contatti, ma lo rendiamo anche “CTA‑centric”)
-  - bottoni hero / CTA principali (per pagina)
+Obiettivo immediato (quello che ti sta bloccando adesso)
+1) Sistemare l’accesso Admin in modo che:
+   - se la password/email è sbagliata ti dica chiaramente cosa fare (non solo “invalid login credentials”)
+   - se l’email non è confermata ti mostri il bottone “Reinvia email di conferma”
+   - tu possa fare “Password dimenticata” e resettare senza impazzire
+2) Aggiungere un pannello “Utenti” in Admin per:
+   - vedere la lista utenti creati (email + id + stato conferma)
+   - cancellare utenti selezionandoli da una lista (con conferma e protezioni)
+3) Risolvere il “bootstrap” del ruolo admin (adesso `has_role(..., admin)` torna `false` e quindi anche se fai login ti ributta fuori dall’admin).
 
-Stato attuale (verificato nel codice)
-- Il backend (Lovable Cloud) è già pronto con tabelle: `page_content`, `site_settings`, `media_assets`, `social_links`, `site_footer`, `user_roles` + funzione `has_role()`.
-- Le pagine pubbliche:
-  - Locanda e Masseria: oggi sono ancora hardcoded per menu/gallerie/testi; solo WhatsApp prende il numero da `site_settings.contact`.
-  - Home (`EdenLanding.tsx`) è molto grande e tutta hardcoded.
-- Admin (`AdminDashboard.tsx`) ha già tabs: Contatti, Privacy, Footer (JSON), Social, Media (upload).
-- Hook già pronti: `usePageBlocks` + `pickSection`.
+Contesto che ho già dai log / codice
+- Le richieste mostrano sia `email_not_confirmed` (prima) sia `invalid_credentials` (quando si prova con email/password diverse o password sbagliata).
+- L’utente `admin@edewinefood.it` risulta poi confermato e con login OK, ma `rpc/has_role` risponde `false` ⇒ manca la riga in `user_roles` per quel user_id.
+- L’Admin è protetto correttamente via controllo server-side (RPC `has_role`), quindi non c’è bypass lato client: va solo “sbloccato” il ruolo.
 
-Decisioni chiave (per fare bene “data-driven + fallback”)
-1) Modello contenuti per pagina (restando compatibili col DB esistente)
-- Useremo `page_content` con sezioni “singleton” (1 riga per sezione) che contengono JSON strutturato.
-- Per le liste (menu, vini, gallery) salveremo **un solo JSON** con un array interno, così è semplice leggere/salvare e fare fallback:
-  - `page=locanda, section=menu` → `{ sections: [...] }`
-  - `page=locanda, section=wines` → `{ sections: [...] }`
-  - `page=locanda, section=gallery` → `{ items: [...] }`
-  - `page=masseria, section=gallery` → `{ items: [...] }`
-  - ecc.
-- Questo evita dover gestire molte righe e “order” sul DB (il riordino lo gestiamo nell’array). Il campo `order` in tabella rimane a `0` per queste sezioni.
+Cosa implementerò (frontend + backend) — in passi piccoli e verificabili
 
-2) Riferimenti immagini
-- Nel DB non salviamo URL esterni tipo picsum: salviamo riferimenti a media interni in uno di questi modi:
-  - preferito: `{ assetId: "uuid" }`
-  - alternativa: `{ bucket: "site-media", path: "..." }`
-- In runtime, risolviamo l’URL pubblico via Storage (bucket pubblico già presente). Così l’Admin può “scegliere immagine” dalla libreria media.
+A) Bootstrap del primo admin (sblocco accesso)
+1. Inserire una riga in `user_roles` con:
+   - `user_id = a823052b-6989-4c40-a862-9344ae1d88a7` (quello visto nei log)
+   - `role = 'admin'`
+2. Subito dopo:
+   - fare logout/login e verificare che `has_role` torni `true`
+   - accedere a `/admin` senza redirect.
 
-3) “Link & CTA” dove salvare i dati
-- Useremo `site_settings` con una chiave dedicata (es. `key = "cta"`), che conterrà:
-  - `whatsappTemplates: { locanda: string, masseria: string, home?: string }`
-  - `heroButtons: { home?: {...}, locanda?: {...}, masseria?: {...} }` oppure, meglio ancora: bottoni hero per pagina stanno nella rispettiva `page_content.hero` e in “Link & CTA” forniamo un editor che li salva lì (così tutto ciò che è “della pagina” resta nella pagina).
-- Manteniamo `site_settings.contact` come fonte canonica di `phone/whatsapp/address/mapsUrl` (già esiste). Il tab “Link & CTA” mostrerà anche Maps/WhatsApp come riepilogo e permette di modificare i template messaggio.
+Nota sicurezza:
+- I ruoli restano SOLO in tabella separata `user_roles` (come già fatto).
+- Non userò localStorage/sessionStorage né credenziali hardcoded per decidere chi è admin.
 
-Cosa cambierà lato pubblico (pagine)
-A) Locanda (`src/pages/LocandaEden.tsx`)
-- Aggiungere `usePageBlocks("locanda")`.
-- Sostituire:
-  - descrizione hero
-  - CTA labels/href (WhatsApp + anchor menu)
-  - menuSections
-  - wineSections
-  - galleryItems
-  con valori presi da `page_content`, usando `pickSection(..., fallbackAttuale)`.
-- Per WhatsApp:
-  - numero: resta da `site_settings.contact.whatsapp`
-  - testo messaggio: viene da `site_settings.cta.whatsappTemplates.locanda` con fallback al testo attuale.
+B) Sistemare “invalid login credentials” (UX + flusso auth robusto)
+Modifiche a `src/pages/admin/AdminLogin.tsx`:
+1) Gestione errori “intelligente”:
+   - Se `error.code === "email_not_confirmed"`: mostra callout con bottone “Reinvia conferma” (invoca resend).
+   - Se `error.code === "invalid_credentials"`: testo chiaro “Email o password errate”.
+   - Messaggi più “umani” nei toast (senza perdere dettagli tecnici in console).
+2) Aggiungere “Password dimenticata?”:
+   - Link sotto al form che apre una modalità “reset password”
+   - Chiede email e invia reset con redirect su `/reset-password`.
+3) Creare la pagina pubblica `/reset-password`:
+   - Form nuova password + conferma
+   - Legge il contesto recovery dalla URL/hash come richiesto dal provider auth
+   - Chiama `supabase.auth.updateUser({ password })`.
+4) (Opzionale ma consigliato) Aggiungere anche un pulsante “Mostra/Nascondi password” per ridurre errori di digitazione.
 
-B) Masseria (`src/pages/MasseriaPetrullo.tsx`)
-- Aggiungere `usePageBlocks("masseria")`.
-- Rendere data-driven:
-  - descrizione hero
-  - CTA labels/href (WhatsApp + anchor gallery)
-  - polaroids gallery
-  - nota “Solo per eventi…”
-- WhatsApp template da `site_settings.cta.whatsappTemplates.masseria`.
+C) Funzione backend “admin-users” per lista/cancellazione utenti (solo admin)
+Per poter cancellare utenti “veri” del sistema auth non basta il client; serve una funzione backend che usi la chiave di servizio.
 
-C) Home (`src/components/eden/EdenLanding.tsx`)
-- È un file molto grande: per evitare regressioni, la strategia è incrementale e sicura:
-  1) prima passata: rendiamo data-driven i blocchi “core” che hanno più valore da amministrare:
-     - Hero (titolo/sottotitolo, bottoni principali)
-     - eventuali CTA principali e/o blocchi testo che in UI risultano “editabili”
-     - gallery principale (se presente)
-  2) seconda passata: estendiamo alle altre sezioni (percorsi cucina, recensioni, ecc.)
-- Tecnica: `usePageBlocks("home")` + `pickSection("hero", fallbackHardcoded)` ecc.
-- Importante: quando una sezione non è ancora migrata, rimane hardcoded.
+1) Creare una backend function (Edge Function) `admin-users` con queste regole:
+   - `verify_jwt = false` in `supabase/config.toml` per evitare problemi di verifica gateway in questo ambiente.
+   - Validazione manuale nel codice:
+     - prende header `Authorization`
+     - `supabase.auth.getUser(token)` per validare token
+     - verifica admin via DB (`has_role(user.id, 'admin')`) usando un client con service key o una query diretta a `user_roles` (sempre server-side).
+   - Se non admin ⇒ 403.
+2) Endpoint supportati:
+   - `GET` → ritorna lista utenti paginata (email, id, created_at, email_confirmed_at)
+   - `DELETE` con `{ userId }` → cancella un utente
+3) Sicurezze:
+   - bloccare cancellazione del proprio account (self-delete) oppure richiedere doppia conferma
+   - logging minimale (no leak token)
+   - CORS headers corretti.
+4) Non modificherò tabelle di sistema; userò le API admin supportate dalla libreria.
 
-Cosa cambierà in Admin (editor guidati)
-1) Nuovi tab in `AdminDashboard.tsx`
-- Aggiungeremo:
-  - “Home”
-  - “Locanda”
-  - “Masseria”
-  - “Link & CTA”
-- Il tab “Footer” potrà restare per ora JSON (già funziona), ma in parallelo possiamo aggiungere campi guidati principali (brandName, description, designBy, sections) senza perdere la modalità JSON (opzionale).
+D) Tab “Utenti” in AdminDashboard (selezione da lista + delete)
+1) Aggiungere nuovo tab “Utenti” in `src/pages/admin/AdminDashboard.tsx`.
+2) UI:
+   - tabella con:
+     - Email
+     - Stato conferma (Confermata / Non confermata)
+     - Created at
+     - User ID (copiabile)
+   - checkbox per selezionare uno o più utenti
+   - bottone “Cancella selezionati” con AlertDialog (Radix) + conferma
+   - filtro veloce (search email)
+3) Integrazione:
+   - usa `supabase.functions.invoke("admin-users", { body })` per list e delete
+   - gestisce loading/error con toast
+   - refresh dopo delete.
 
-2) Pattern tecnico per gli editor
-- Ogni tab:
-  - carica dati da `page_content` tramite query (possiamo riusare `usePageBlocks`)
-  - idrata form state con fallback (contenuto attuale hardcoded)
-  - permette:
-    - aggiungere/rimuovere voci
-    - riordinare (pulsanti Su/Giù + eventualmente “sposta in alto/basso”)
-    - preview live sotto al form
-  - “Salva”:
-    - salva sul DB in modo robusto:
-      - `DELETE` tutte le righe per `{page, section}` e poi `INSERT` una riga con `order=0` e `content=formValue`
-      - invalidate query (`react-query`) per aggiornare sito e admin
-- Validazione:
-  - zod per campi obbligatori (titoli, prezzi, URL quando richiesto)
-  - normalizzazione prezzi (lasciamo stringa tipo “€ 18” per massima libertà, oppure separiamo number+currency se vuoi rigore; per ora stringa = più flessibile)
+E) Fix secondari (non bloccanti, ma puliscono console)
+Dai console log risulta un warning sui ref durante render:
+- indagherò dove passa un `ref` a componenti function (probabile interazione `FormControl`/Slot o un wrapper che fa cloneElement).
+- Se replicabile, applicherò un fix mirato (forwardRef dove serve) per ridurre rumore in console, senza cambiare UI.
 
-3) Editor specifici richiesti (non JSON)
-A) Locanda: Menu
-- UI:
-  - Lista “Sezioni” (Antipasti/Primi/…)
-  - Dentro sezione: lista piatti (nome, descrizione, prezzo)
-  - Bottoni: +Sezione, +Piatto, elimina, su/giù
-  - Preview: render come le card attuali (stesso markup/stile)
+Sequenza di rilascio (per non rompere nulla)
+1) Inserimento ruolo admin per il tuo userId (sblocco immediato).
+2) AdminLogin: messaggi errore + “reinvia conferma” + “password dimenticata”.
+3) Nuova route `/reset-password` e test completo reset.
+4) Backend function `admin-users` (list + delete) con controlli admin robusti.
+5) Tab “Utenti” in AdminDashboard (selezione da lista + cancellazione).
+6) Fix warning ref (se ancora presente e riproducibile).
 
-B) Locanda: Carta vini
-- Identico al Menu ma con dataset separato (`section=wines`)
+Cosa ti chiederò di testare (end-to-end)
+1) Login admin:
+   - prova password sbagliata → messaggio chiaro
+   - prova email non confermata (se ne hai una) → appare “Reinvia conferma”
+2) Reset password:
+   - invio email reset → arrivo su `/reset-password` → set nuova password → login OK
+3) Gestione utenti:
+   - apri tab “Utenti”
+   - selezioni 1-2 account di test
+   - cancelli e ricarichi lista
+   - verifichi che non puoi cancellare te stesso (o che richiede doppia conferma)
+4) Accesso `/admin`:
+   - verificare che dopo bootstrap ruolo admin non ti rimbalza più.
 
-C) Locanda: Gallery
-- Lista items: (immagine, alt, tag, title, sizeClass)
-- Selettore immagine:
-  - “Scegli da Media” (apre dialog con griglia di immagini)
-  - “Upload” rapido (riusa upload già pronto) e poi seleziona
-- Preview: stessa griglia attuale con overlay tag/title
+Impatto su sicurezza
+- Tutte le operazioni “pericolose” (lista utenti/cancellazione) saranno lato backend con:
+  - token validato
+  - controllo ruolo admin server-side
+  - nessuna fiducia nel client.
+- Ruoli sempre in tabella separata `user_roles`.
 
-D) Masseria: Gallery polaroid
-- Lista items: (immagine, alt, caption, tiltClass)
-- Riordino + preview polaroid wall.
+File/aree coinvolte (indicativo)
+- Frontend:
+  - `src/pages/admin/AdminLogin.tsx` (migliorie UX + reset flow)
+  - `src/pages/admin/ResetPassword.tsx` (nuovo)
+  - `src/App.tsx` (aggiunta route /reset-password)
+  - `src/pages/admin/AdminDashboard.tsx` (nuovo tab Utenti)
+- Backend:
+  - `supabase/functions/admin-users/index.ts` (nuovo)
+  - `supabase/config.toml` (aggiunta blocco verify_jwt=false per questa function)
+- Dati:
+  - inserimento riga `user_roles` per il tuo user_id (operazione dati, non schema)
 
-E) Masseria: Hero + Nota
-- Campi: descrizione, testi bottoni, eventuale immagine titolo (se vuoi sostituire anche quella con media)
-- Nota: testo semplice.
-
-F) Home: Hero + blocchi principali
-- Campi definiti in base a cosa c’è in pagina (prima passata minima, poi estendiamo):
-  - headline / subheadline
-  - CTA primario (label + “azione”: link esterno / link interno / anchor)
-  - CTA secondario
-  - eventuale gallery home
-- Preview: mini-preview hero + CTA.
-
-4) Tab “Link & CTA”
-- Scopo: nessun link “sparso nel codice”.
-- Contenuti:
-  - WhatsApp templates:
-    - Locanda template (textarea)
-    - Masseria template (textarea)
-    - (opzionale) Home template
-    - Nota: supporto placeholders semplici (opzionale) tipo `{date}`, `{name}`—se lo vuoi, lo pianifichiamo, altrimenti testo libero come oggi.
-  - Bottoni hero (per pagina):
-    - per ciascuna pagina: label + target (url / route / anchor)
-  - Maps:
-    - riuso del campo `contact.mapsUrl` ma lo esponiamo anche qui come “CTA Indicazioni”
-- Salvataggio:
-  - `site_settings` upsert su `key="cta"` per i template
-  - per bottoni hero: salvataggio in `page_content` `section="hero"` della rispettiva pagina (o, se preferisci centralizzare, salvataggio in `site_settings.cta.heroButtons` e le pagine leggono da lì; io consiglio per‑pagina dentro `page_content.hero`).
-
-Operazioni DB necessarie
-- Nessuna modifica di schema obbligatoria.
-- Serve invece “seed” iniziale dei contenuti:
-  - Inserire in `page_content` i JSON iniziali copiati dagli attuali hardcoded (così appena attivi l’Admin vedi già tutto compilato).
-  - Inserire in `site_settings` la chiave `cta` con i template WhatsApp iniziali (copiati dal codice).
-- Queste sono operazioni dati (INSERT/UPDATE/DELETE), non migrazioni.
-
-Sequenza di implementazione (per minimizzare rischi)
-1) Definizione JSON per sezioni
-- Concordiamo (io lo propongo) gli oggetti `hero/menu/wines/gallery/note` per `locanda` e `masseria` (strutture già chiare dai file).
-- Per `home`, facciamo iterazione: prima hero + 1–2 sezioni.
-
-2) Locanda data-driven (lettura + fallback)
-- Implementare lettura da DB per hero/menu/wines/gallery + WhatsApp template
-- Verificare che senza dati DB tutto resta identico (fallback).
-
-3) Admin editor guidato: Locanda (menu/wines/gallery)
-- UI + save su `page_content`
-- Collegare Media picker
-- Preview.
-
-4) Masseria data-driven + editor guidato
-- Stesso pattern: gallery polaroid + hero + note.
-
-5) Tab “Link & CTA”
-- Creare/leggere/salvare `site_settings.cta`
-- Spostare WhatsApp templates fuori dal codice nelle pagine.
-
-6) Home: data-driven incrementale
-- Prima: hero + CTA (e gallery se presente e richiesta).
-- Poi estendiamo alle sezioni successive (percorsi cucina, ecc.), una per volta, sempre con fallback.
-
-Test e checklist (fondamentale, perché qui tocchiamo molte UI)
-- Pubblico:
-  - /, /locanda-eden, /masseria-petrullo caricamento OK
-  - nessun errore console
-  - immagini gallery da storage visibili
-  - anchor link (#menu/#gallery) ancora funzionanti
-- Admin:
-  - login, accesso /admin
-  - salvataggio: modifica un piatto, refresh pagina pubblica e verificare aggiornamento
-  - upload immagine + selezione in gallery + verifica in pubblico
-  - riordino: verifica che l’ordine salvato è quello visualizzato
-- Sicurezza:
-  - confermare che le scritture avvengono solo con utente admin (RLS già presente)
-  - nessun controllo admin via storage client (già ok: usiamo RPC `has_role`)
-
-Ambiguità minime da chiarire (solo per Home)
-- Quali sezioni di Home vuoi assolutamente rendere editabili “subito” nella prima passata?
-  - Esempi: Hero, blocco “Percorsi”, Gallery, Eventi, Recensioni, Contatti…
-  - Io posso partire da Hero+CTA e poi proseguire in ordine di priorità.
-
-File che toccheremo (indicativi)
-- Pagine pubbliche:
-  - `src/pages/LocandaEden.tsx`
-  - `src/pages/MasseriaPetrullo.tsx`
-  - `src/components/eden/EdenLanding.tsx` (incrementale)
-- Admin:
-  - `src/pages/admin/AdminDashboard.tsx` (nuovi tab + editor guidati + picker media)
-  - probabilmente nuovi componenti riusabili in `src/components/admin/*` (EditorList, MediaPickerDialog, ReorderButtons, PreviewCard)
-- Utilità:
-  - piccole helper per risolvere public URL da asset (`media_assets`) e per normalizzare CTA links.
-
-Risultato finale atteso
-- Tutti i contenuti principali (hero/testi/menu/vini/gallerie) per Home/Locanda/Masseria sono:
-  - modificabili in Admin con form guidati
-  - salvati su DB
-  - mostrati nel sito pubblico
-  - con fallback ai contenuti attuali se DB è vuoto
-- Tab “Link & CTA” centralizza i template WhatsApp e i bottoni/azioni principali senza modifiche al codice.
+Nota operativa su “cancellare gli user creati”
+- Hai scelto “Selezione da lista”: quindi non cancello “a tappeto”.
+- Ti metto un pannello dove li vedi e scegli tu; è l’approccio più sicuro per evitare di cancellare utenti reali per errore.
