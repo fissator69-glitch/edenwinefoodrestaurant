@@ -1,163 +1,103 @@
 
-Contesto (dove siamo)
-- Mi confermi che **Leaked Password Protection** è già attivo: perfetto, quindi riparto con il refactor di **/admin** e l’organizzazione **Media per pagina** (EDEN/Locanda/Masseria) + editor EDEN (Percorsi + Gallery) e Masseria.
-- Nel database la colonna `media_assets.page` risulta già presente (nullable) e le tabelle `page_content` e `media_assets` hanno RLS corretta (scrivono solo admin, lettura pubblica).
-
-Obiettivo della prossima implementazione (in codice)
-1) /admin “catalogato” in tab/pagine chiare:
-   - Sito (Globale): contatti/privacy/footer/social + Link&CTA (editor già esistente)
-   - EDEN (Home): Percorsi cucina + Gallery EDEN (nuovi editor)
-   - Locanda: usare `AdminLocandaEditor` (già esistente)
-   - Masseria: nuovo editor dedicato (hero/gallery/note)
-   - Media: libreria con filtro `page` + assegnazione pagina + upload con scelta pagina
-   - Utenti: lasciare la gestione utenti già presente
-
-2) MediaPicker “intelligente”
-- `MediaPickerDialog` deve poter filtrare i media per `page` (di default mostra quelli della pagina corrente, con toggle “Mostra tutti”).
-
-3) Home EDEN collegata a backend (con fallback)
-- Spostare:
-  - Percorsi cucina: in `page_content` con `page="home"`, `section="eden_menu"`
-  - Gallery EDEN: in `page_content` con `page="home"`, `section="eden_gallery"`
-- `EdenLanding.tsx` leggerà dal backend se presente, altrimenti continuerà ad usare gli hardcoded attuali (fallback), così non rompiamo nulla.
+Obiettivo (richiesta tua)
+- Sezione **Recensioni** deve essere **mobile-first**, con **più recensioni (12)** e **movimento verticale continuo** “non ordinato”.
+- Niente rotazione/tilt (hai scelto “Solo movimento”).
+- L’animazione deve **mettersi in pausa** quando l’utente **tocca/pressa** (mobile) o **hover** (desktop).
+- Mantenere accessibilità: se l’utente ha **Riduci animazioni** attivo, disattiviamo l’animazione.
 
 ---
 
-Esplorazione rapida del codice attuale (cosa cambia)
-- `src/pages/admin/AdminDashboard.tsx` oggi contiene tutto “misto” (contatti/privacy/footer/social/media/users) e l’upload media inserisce solo `{bucket,path,alt,tags}` senza `page`.
-- `src/hooks/content/useMediaAssets.ts` non seleziona `page` (quindi in UI non possiamo filtrare/assegnare bene).
-- `src/components/admin/MediaPickerDialog.tsx` oggi filtra solo con search string; nessun filtro per pagina.
-- `AdminLocandaEditor.tsx` è già fatto bene e usa `usePageBlocks("locanda")` + `MediaPickerDialog`.
-- Le pagine `LocandaEden.tsx` e `MasseriaPetrullo.tsx` già leggono `page_content` e risolvono immagini via `assetId` con `resolveMediaRef`.
-- `EdenLanding.tsx` ha `CUCINA_PERCORSI` hardcoded e `galleryItems` hardcoded (pexels): dobbiamo aggiungere lettura da `page_content` + media assets.
+## 1) Esplorazione (stato attuale)
+- In `src/components/eden/EdenLanding.tsx` la sezione recensioni (`#recensioni`) renderizza **3 card** dentro:
+  - `<div className="reviews-grid reveal-stagger"> ... </div>`
+- In `src/styles/eden.css`:
+  - Desktop: `.reviews-grid` è una griglia 3 colonne.
+  - Mobile (max 640): abbiamo appena trasformato `.reviews-grid` in **carosello orizzontale** con scroll-snap.
+- Quindi: al momento la UI **non cambia davvero “sistema”** (rimane sempre `.reviews-grid`), e su mobile è **orizzontale**, mentre tu vuoi **verticale in movimento continuo**.
 
 ---
 
-Progettazione dati (concreto)
-A) media_assets
-- Useremo `media_assets.page` con valori:
-  - `"eden" | "locanda" | "masseria" | null`
-- `null` = “Non assegnati” (utile per i media già caricati)
+## 2) Design (nuovo sistema “vertical marquee” su mobile)
+### Idea UI
+- Desktop/tablet: teniamo una griglia “pulita” (come ora, 3 colonne) con 12 recensioni oppure 6–9 (decidiamo in base a resa).  
+- Mobile (≤ 640px): sostituiamo la griglia con un **marquee verticale**:
+  - 2 colonne (o 1 colonna se preferisci più leggibilità) di card
+  - ogni colonna scorre verso l’alto **in loop**
+  - le colonne hanno **durate diverse** + **gap diversi** per l’effetto “non ordinato”
+  - per il loop senza “salti”: **duplico** l’elenco (track A + track A) e animo `translateY` fino a metà.
 
-B) page_content (EDEN)
-- `page="home"`
-- `section="eden_menu"` con struttura tipo:
-  ```ts
-  { percorsi: Array<{
-      key: "terra" | "mare" | "scoperta",
-      label: string,
-      title: string,
-      price: number,
-      priceExtra?: string,
-      sections: Array<{ title: string, items?: string[] }>,
-      notes?: Array<{ label: string, items?: string[] }>
-    }> }
-  ```
-- `section="eden_gallery"` con struttura tipo:
-  ```ts
-  { items: Array<{
-      assetId?: string,
-      src?: string,
-      category: "food" | "location" | "events",
-      sizeClass?: "item-large" | "item-wide" | "item-tall",
-      alt: string,
-      tag: string,
-      title: string
-  }> }
-  ```
+### Pausa su hover/touch
+- CSS: `:hover` sul contenitore (desktop) mette in pausa con `animation-play-state: paused`.
+- Touch: aggiungo in React degli handler `onPointerDown / onPointerUp / onPointerCancel` sul contenitore marquee per aggiungere/rimuovere una classe tipo `.is-paused`.
+
+### Reduced motion
+- `@media (prefers-reduced-motion: reduce)` → niente animazione, layout statico (lista normale verticale) per mobile.
 
 ---
 
-Cambiamenti pianificati (sequenza di implementazione)
-1) Hook + tipizzazione Media (base per tutto)
-- Aggiornare `useMediaAssets.ts`:
-  - estendere `MediaAsset` con `page?: string | null`
-  - includere `page` nella select: `select("id,bucket,path,alt,tags,created_at,page")`
-- Questo sblocca subito: filtro per pagina, assegnazione pagina, e MediaPicker filtrabile.
+## 3) Piano di implementazione (modifiche concrete)
+### A) EdenLanding.tsx — aggiungere più recensioni e markup per marquee mobile
+1. Creare un array `REVIEWS` (12 item) in EdenLanding:
+   - `title` (es. “Cena indimenticabile”)
+   - `text`
+   - `context` (es. “Cena tra amici”, “Evento privato”, ecc.)
+   - `stars` (stringa “★★★★★” o numero)
+2. Sostituire l’attuale hardcode (3 card) con rendering da array:
+   - Desktop: render in `.reviews-grid` come adesso (ma con 12).
+3. Aggiungere una nuova struttura SOLO per mobile:
+   - `<div className="reviews-marquee">`
+     - `<div className="reviews-marquee-col" data-speed="slow">`
+       - `<div className="reviews-marquee-track">` (lista + lista duplicata)
+     - `<div className="reviews-marquee-col" data-speed="fast">` …
+4. Gestione pausa touch:
+   - stato `isReviewsPaused` boolean
+   - container marquee: `onPointerDown => setPaused(true)`, `onPointerUp/Cancel => setPaused(false)`
+   - classe `reviews-marquee is-paused` quando paused
 
-2) MediaPickerDialog: filtro per `page` + toggle “Mostra tutti”
-- Estendere props di `MediaPickerDialog`:
-  - `pageFilter?: "eden" | "locanda" | "masseria" | null` (opzionale)
-  - `showAllToggle?: boolean` (default true)
-- Logica:
-  - se `pageFilter` è passato e “Mostra tutti” è OFF:
-    - mostra solo asset con `asset.page === pageFilter`
-  - search continua a funzionare come ora (si applica dopo il filtro pagina).
-
-3) AdminDashboard: nuova “catalogazione” tab
-- Rifattorizzare `AdminDashboard.tsx` in tab principali:
-  - `site` (Globale): contatti/privacy/footer/social + embed `AdminLinkCtaEditor`
-  - `eden`: embed nuovo `AdminEdenEditor`
-  - `locanda`: embed `AdminLocandaEditor`
-  - `masseria`: embed nuovo `AdminMasseriaEditor`
-  - `media`: nuova libreria media (vedi step 4)
-  - `users`: mantenere sezione utenti (quasi invariata)
-- Obiettivo UX: l’admin apre e capisce dove andare in 3 secondi.
-
-4) Tab “Media”: libreria vera
-- Aggiungere filtro select: EDEN / Locanda / Masseria / Non assegnati / Tutti
-- Mostrare cards con:
-  - preview immagine (usando `publicUrl(bucket, path)`)
-  - bucket/path
-  - select “Pagina” per cambiare `media_assets.page` con update immediato
-- Upload:
-  - prima scegli pagina (eden/locanda/masseria) o “non assegnata”
-  - dopo upload in storage, l’insert su `media_assets` includerà `page`
-- (Opzionale ma consigliato) campo alt editabile in-place.
-
-5) Nuovo AdminEdenEditor (Percorsi + Gallery)
-- Creare `src/components/admin/AdminEdenEditor.tsx`:
-  - Legge `usePageBlocks("home")` e `useMediaAssets()`
-  - Ha 2 sotto-tab:
-    - “Percorsi cucina” (Terra/Mare/Scoperta) con UI edit (reorder/add/remove) simile allo stile già usato in `AdminLocandaEditor`
-    - “Gallery” con lista items + reorder + bottone “Scegli immagine” che apre `MediaPickerDialog` con `pageFilter="eden"`
-  - Salvataggio:
-    - `upsertSingletonPageSection("home","eden_menu", ...)`
-    - `upsertSingletonPageSection("home","eden_gallery", ...)`
-  - Invalidazione react-query su `["page_content","home"]`
-
-6) Nuovo AdminMasseriaEditor
-- Creare `src/components/admin/AdminMasseriaEditor.tsx`:
-  - Simile a Locanda editor, ma con sezioni:
-    - hero (descrizione)
-    - gallery (polaroid items con `assetId` e tiltClass/caption/alt)
-    - note (testo)
-  - MediaPicker filtrato `pageFilter="masseria"`
-  - Salvataggio su `page="masseria"` sections `hero/gallery/note`
-
-7) EdenLanding.tsx: leggere `eden_menu` + `eden_gallery` dal backend con fallback
-- Integrare:
-  - `usePageBlocks("home")`
-  - `useMediaAssets()` + `assetsById`
-  - `pickSection` per `eden_menu` e `eden_gallery`
-- Collegare:
-  - Percorsi cucina: se backend presente, usare quelli; altrimenti usare `CUCINA_PERCORSI` attuale
-  - Gallery: se backend presente, usare items dal backend; altrimenti usare `galleryItems` attuale
-- Per la gallery, quando un item ha `assetId`, risolvere con `resolveMediaRef` (come già in Locanda/Masseria), altrimenti usare `src`.
+> Nota: la griglia `.reviews-grid` può restare per desktop/tablet; su mobile la nascondiamo e mostriamo solo marquee (via CSS).
 
 ---
 
-Rischi/attenzioni (per non rompere l’app)
-- Retrocompatibilità: EdenLanding deve rimanere ok anche senza dati in `page_content` (fallback).
-- Media già caricati: essendo `page` nullable, appariranno in “Non assegnati” finché non li classifichi.
-- Performance: evitare di renderizzare 1000 preview; nel tab media manterrò paginazione semplice o un `.slice(0, N)` con “Carica altro” (decidiamo in implementazione in base a quanti asset hai).
+### B) eden.css — rimuovere il carosello orizzontale e aggiungere marquee verticale
+1. Eliminare/neutralizzare la parte mobile che trasforma `.reviews-grid` in carosello orizzontale:
+   - In `@media (max-width: 640px)` togliere `grid-auto-flow: column`, `overflow-x`, `scroll-snap-type`, scrollbar ecc.
+2. Aggiungere stile per marquee:
+   - `.reviews-marquee { display: none; }` di default
+   - `@media (max-width: 640px)`:
+     - `.reviews-grid { display: none; }`
+     - `.reviews-marquee { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; height: 520px; overflow: hidden; }`
+     - `.reviews-marquee-track { display: grid; gap: 12px; animation: reviews-marquee-up var(--dur) linear infinite; }`
+     - `.reviews-marquee-col[data-speed="slow"] { --dur: 22s; }`
+     - `.reviews-marquee-col[data-speed="fast"] { --dur: 16s; }`
+3. Keyframes:
+   - `@keyframes reviews-marquee-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }`
+   - Funziona perché la track contiene “lista + lista” → la seconda metà rimpiazza la prima senza stacco.
+4. Pausa:
+   - `.reviews-marquee:hover .reviews-marquee-track { animation-play-state: paused; }`
+   - `.reviews-marquee.is-paused .reviews-marquee-track { animation-play-state: paused; }`
+5. Reduced motion:
+   - `@media (prefers-reduced-motion: reduce)`:
+     - `.reviews-marquee-track { animation: none; }`
+     - `.reviews-marquee { height: auto; overflow: visible; }`
+     - (oppure fallback a lista semplice 1 colonna)
 
 ---
 
-Cosa mi serve da te (solo se necessario)
-Niente di bloccante. Al massimo, durante l’implementazione potrei chiederti una preferenza minima:
-- Nel tab Media: vuoi default filtro su “EDEN” oppure “Tutti”?
+## 4) Verifica end-to-end (manuale in preview)
+1. Apri home e scorri a `#recensioni` da mobile:
+   - devono vedersi **12 recensioni** (in loop, non solo 3).
+   - deve esserci **movimento verticale continuo**.
+2. Prova “pausa su touch”:
+   - tieni premuto sulle recensioni → scorrimento si ferma
+   - rilascia → riparte
+3. Prova da desktop:
+   - hover sulle recensioni → si ferma
+4. Se hai “Riduci animazioni” attivo nel sistema:
+   - le recensioni restano statiche (niente movimento).
 
 ---
 
-Verifica end-to-end (dopo implementazione)
-1) /admin:
-- Vedi tab: Sito / EDEN / Locanda / Masseria / Media / Utenti
-2) Media:
-- Upload scegliendo pagina “Locanda” → in lista con filtro Locanda lo vedi
-- Cambi “Pagina” su un asset → sparisce/compare correttamente nei filtri
-3) Locanda/Masseria editor:
-- In “Scegli immagine” vedi di default media della stessa pagina (toggle “Mostra tutti” funziona)
-4) EDEN editor:
-- Cambi una voce Percorso → Salva → refresh home → cambio visibile
-- Cambi gallery scegliendo asset → Salva → home mostra la nuova immagine
+## 5) Micro-decisioni (che applico durante l’implementazione)
+- Mobile: 2 colonne (più “wow”) o 1 colonna (più leggibilità). Di default propongo **2 colonne**.
+- Altezza marquee: inizialmente ~520px, poi la rifiniamo in base a come appare con le tue card.
+
