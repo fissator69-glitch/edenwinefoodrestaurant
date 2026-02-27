@@ -5,26 +5,18 @@ import EdenTransitionLink from "@/components/eden/EdenTransitionLink";
 import EdenFallingLeavesCanvas from "@/components/eden/EdenFallingLeavesCanvas";
 import EdenFooter from "@/components/eden/EdenFooter";
 import locandaTitle from "@/assets/locanda-title.png";
+
 import { getSetting, useSiteSettings } from "@/hooks/content/useSiteSettings";
-
-type MenuItem = {
-  name: string;
-  desc: string;
-  price: string;
-};
-
-type MenuSection = {
-  title: string;
-  items: MenuItem[];
-};
-
-type GalleryItem = {
-  src: string;
-  alt: string;
-  tag: string;
-  title: string;
-  sizeClass?: string;
-};
+import { pickSection, usePageBlocks } from "@/hooks/content/usePageContent";
+import { useMediaAssets } from "@/hooks/content/useMediaAssets";
+import { buildMediaAssetMap, resolveMediaRef } from "@/lib/media";
+import { CTA_FALLBACK } from "@/hooks/content/useCtaSettings";
+import {
+  LOCANDA_FALLBACK,
+  type LocandaMenuSection as MenuSection,
+  type LocandaGalleryItem as GalleryItem,
+  type LocandaHeroContent,
+} from "@/content/fallbackLocanda";
 
 export default function LocandaEden() {
   // Keep EDEN full-bleed globals even outside the landing.
@@ -42,180 +34,39 @@ export default function LocandaEden() {
   useRevealOnScroll(".reveal-on-scroll, .reveal-stagger, .gallery-item");
 
   const settings = useSiteSettings();
+  const blocks = usePageBlocks("locanda");
+  const media = useMediaAssets();
+
+  const cta = getSetting(settings.data, "cta", CTA_FALLBACK);
+  const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
+
+  const digits = useMemo(
+    () => String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524",
+    [contact.whatsapp],
+  );
 
   const waUrl = useMemo(() => {
-    const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
-    const digits = String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524";
-
-    const msg = [
-      "Ciao EDEN, vorrei prenotare per la LOCANDA.",
-      "",
-      "Data:",
-      "Orario:",
-      "Persone:",
-      "Nome:",
-      "Note:",
-    ].join("\n");
-
+    const msg = cta.whatsappTemplates.locanda ?? CTA_FALLBACK.whatsappTemplates.locanda;
     return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
-  }, [settings.data]);
+  }, [cta.whatsappTemplates.locanda, digits]);
 
-  const menuSections: MenuSection[] = useMemo(
-    () => [
-      {
-        title: "Antipasti",
-        items: [
-          {
-            name: "Crudo di gambero rosso, agrumi e olio al basilico",
-            desc: "Marinatura delicata, zest di limone, sale affumicato.",
-            price: "€ 18",
-          },
-          {
-            name: "Burrata, datterini confit e pane ai cereali",
-            desc: "Crema di burrata, pomodoro dolce, erbe mediterranee.",
-            price: "€ 14",
-          },
-          {
-            name: "Polpo arrosto, patata schiacciata e paprika",
-            desc: "Cottura lenta, finitura alla piastra.",
-            price: "€ 16",
-          },
-        ],
-      },
-      {
-        title: "Primi",
-        items: [
-          {
-            name: "Spaghettone al pomodoro, basilico e stracciatella",
-            desc: "Pomodoro ristretto, stracciatella fresca.",
-            price: "€ 15",
-          },
-          {
-            name: "Risotto agli asparagi, limone e parmigiano 24 mesi",
-            desc: "Mantecatura cremosa e nota agrumata.",
-            price: "€ 17",
-          },
-          {
-            name: "Orecchiette, cime di rapa e crumble di tarallo",
-            desc: "Tradizione pugliese con texture croccante.",
-            price: "€ 14",
-          },
-        ],
-      },
-      {
-        title: "Secondi",
-        items: [
-          {
-            name: "Ricciola scottata, verdure di stagione e salsa allo zenzero",
-            desc: "Cottura rapida, fondo leggero.",
-            price: "€ 22",
-          },
-          {
-            name: "Guancia di vitello brasata, crema di sedano rapa",
-            desc: "Lunga cottura, riduzione al vino.",
-            price: "€ 24",
-          },
-          {
-            name: "Melanzana glassata, miso e sesamo (vegetariano)",
-            desc: "Caramellizzazione e umami bilanciato.",
-            price: "€ 18",
-          },
-        ],
-      },
-      {
-        title: "Dessert",
-        items: [
-          {
-            name: "Cheesecake al limone, crumble e meringa",
-            desc: "Fresca e agrumata.",
-            price: "€ 8",
-          },
-          {
-            name: "Tiramisù della casa",
-            desc: "Caffè, cacao e crema soffice.",
-            price: "€ 8",
-          },
-        ],
-      },
-    ],
-    [],
-  );
+  const hero = pickSection<LocandaHeroContent>(blocks.data, "hero", LOCANDA_FALLBACK.hero);
+  const menu = pickSection<{ sections: MenuSection[] }>(blocks.data, "menu", LOCANDA_FALLBACK.menu);
+  const wines = pickSection<{ sections: MenuSection[] }>(blocks.data, "wines", LOCANDA_FALLBACK.wines);
+  const gallery = pickSection<{ items: GalleryItem[] }>(blocks.data, "gallery", LOCANDA_FALLBACK.gallery);
 
-  const wineSections: MenuSection[] = useMemo(
-    () => [
-      {
-        title: "Bollicine",
-        items: [
-          { name: "Franciacorta Brut", desc: "Metodo classico, fine e secco.", price: "€ 8 calice" },
-          { name: "Prosecco Extra Dry", desc: "Fruttato e delicato.", price: "€ 6 calice" },
-        ],
-      },
-      {
-        title: "Bianchi",
-        items: [
-          { name: "Verdeca (Puglia)", desc: "Sapido, note floreali.", price: "€ 7 calice" },
-          { name: "Fiano", desc: "Strutturato, elegante.", price: "€ 8 calice" },
-        ],
-      },
-      {
-        title: "Rossi",
-        items: [
-          { name: "Primitivo", desc: "Caldo, morbido, spezie dolci.", price: "€ 8 calice" },
-          { name: "Negroamaro", desc: "Equilibrato, frutti rossi.", price: "€ 7 calice" },
-        ],
-      },
-      {
-        title: "Rosati",
-        items: [{ name: "Rosato del Salento", desc: "Fresco, fragrante.", price: "€ 7 calice" }],
-      },
-    ],
-    [],
-  );
+  const assetsById = useMemo(() => buildMediaAssetMap(media.data), [media.data]);
 
-  const galleryItems: GalleryItem[] = useMemo(
-    () => [
-      {
-        src: "https://picsum.photos/seed/eden-locanda-1/1400/900",
-        alt: "Sala ristorante con luci soffuse",
-        tag: "Sala",
-        title: "Atmosfera serale",
-        sizeClass: "gallery-item--wide",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-locanda-2/1000/1200",
-        alt: "Dettaglio mise en place",
-        tag: "Dettagli",
-        title: "Mise en place",
-        sizeClass: "gallery-item--tall",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-locanda-3/1200/900",
-        alt: "Piatto gourmet impiattato",
-        tag: "Piatti",
-        title: "Signature dish",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-locanda-4/1200/900",
-        alt: "Calici di vino sul tavolo",
-        tag: "Vini",
-        title: "Selezione al calice",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-locanda-5/1200/900",
-        alt: "Dettaglio bancone bar",
-        tag: "Bar",
-        title: "Corner lounge",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-locanda-6/1400/900",
-        alt: "Tavolo apparecchiato con piatti e posate",
-        tag: "Esperienza",
-        title: "Convivialità",
-        sizeClass: "gallery-item--wide",
-      },
-    ],
-    [],
-  );
+  const menuSections = menu.sections;
+  const wineSections = wines.sections;
+  const galleryItems = gallery.items;
+
+  const heroPrimaryLabel = cta.heroButtons.locanda.primary.label;
+  const heroPrimaryHref = cta.heroButtons.locanda.primary.href;
+  const heroSecondaryLabel = cta.heroButtons.locanda.secondary.label;
+  const heroSecondaryHref = cta.heroButtons.locanda.secondary.href;
+
+  const primaryHref = heroPrimaryHref === "whatsapp" ? waUrl : heroPrimaryHref;
 
   return (
     <div className="eden-theme">
@@ -246,16 +97,14 @@ export default function LocandaEden() {
                 <span className="sr-only">Locanda</span>
                 <img className="locanda-title-image" src={locandaTitle} alt="Locanda" loading="eager" decoding="async" />
               </h1>
-              <p className="locanda-desc">
-                Cucina mediterranea contemporanea, servizio caldo e un calice scelto bene. Il tuo tavolo ti aspetta.
-              </p>
+              <p className="locanda-desc">{hero.description}</p>
 
               <div className="locanda-cta-row subpage-hero-enter subpage-hero-enter--delay">
-                <a className="locanda-cta" href={waUrl} target="_blank" rel="noreferrer">
-                  Prenota su WhatsApp
+                <a className="locanda-cta" href={primaryHref} target="_blank" rel="noreferrer">
+                  {heroPrimaryLabel}
                 </a>
-                <a className="locanda-cta locanda-cta--ghost" href="#menu">
-                  Scopri il menù
+                <a className="locanda-cta locanda-cta--ghost" href={heroSecondaryHref}>
+                  {heroSecondaryLabel}
                 </a>
               </div>
             </div>
@@ -343,21 +192,27 @@ export default function LocandaEden() {
             </div>
 
             <div className="gallery-grid">
-              {galleryItems.map((item, idx) => (
-                <div
-                  key={`${item.title}-${idx}`}
-                  className={`gallery-item ${item.sizeClass ?? ""}`.trim()}
-                  style={{ ["--i" as any]: idx }}
-                >
-                  <img src={item.src} alt={item.alt} loading="lazy" />
-                  <div className="gallery-overlay">
-                    <div className="overlay-content">
-                      <span className="overlay-tag">{item.tag}</span>
-                      <h3>{item.title}</h3>
+              {galleryItems.map((item, idx) => {
+                const src = resolveMediaRef(
+                  item.assetId ? ({ assetId: item.assetId } as any) : item.src ? ({ src: item.src } as any) : null,
+                  assetsById,
+                );
+                return (
+                  <div
+                    key={`${item.title}-${idx}`}
+                    className={`gallery-item ${item.sizeClass ?? ""}`.trim()}
+                    style={{ ["--i" as any]: idx }}
+                  >
+                    {src ? <img src={src} alt={item.alt} loading="lazy" /> : null}
+                    <div className="gallery-overlay">
+                      <div className="overlay-content">
+                        <span className="overlay-tag">{item.tag}</span>
+                        <h3>{item.title}</h3>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

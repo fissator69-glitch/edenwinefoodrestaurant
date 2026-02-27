@@ -5,15 +5,13 @@ import EdenTransitionLink from "@/components/eden/EdenTransitionLink";
 import EdenFallingLeavesCanvas from "@/components/eden/EdenFallingLeavesCanvas";
 import EdenFooter from "@/components/eden/EdenFooter";
 import masseriaTitle from "@/assets/masseria-title.png";
+
 import { getSetting, useSiteSettings } from "@/hooks/content/useSiteSettings";
-
-
-type PolaroidItem = {
-  src: string;
-  alt: string;
-  caption?: string;
-  tiltClass: string;
-};
+import { pickSection, usePageBlocks } from "@/hooks/content/usePageContent";
+import { useMediaAssets } from "@/hooks/content/useMediaAssets";
+import { buildMediaAssetMap, resolveMediaRef } from "@/lib/media";
+import { CTA_FALLBACK } from "@/hooks/content/useCtaSettings";
+import { MASSERIA_FALLBACK, type MasseriaPolaroidItem as PolaroidItem, type MasseriaHeroContent } from "@/content/fallbackMasseria";
 
 export default function MasseriaPetrullo() {
   // Keep EDEN full-bleed globals even outside the landing.
@@ -31,101 +29,35 @@ export default function MasseriaPetrullo() {
   useRevealOnScroll(".reveal-on-scroll, .reveal-stagger, .masseria-polaroid");
 
   const settings = useSiteSettings();
+  const blocks = usePageBlocks("masseria");
+  const media = useMediaAssets();
+  const assetsById = useMemo(() => buildMediaAssetMap(media.data), [media.data]);
+
+  const cta = getSetting(settings.data, "cta", CTA_FALLBACK);
+  const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
+
+  const digits = useMemo(
+    () => String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524",
+    [contact.whatsapp],
+  );
 
   const waUrl = useMemo(() => {
-    const contact = getSetting(settings.data, "contact", { whatsapp: "393497152524" });
-    const digits = String(contact.whatsapp ?? "").replace(/[^0-9]/g, "") || "393497152524";
-
-    const msg = [
-      "Ciao EDEN, vorrei informazioni per un EVENTO PRIVATO presso MASSERIA PETRULLO.",
-      "",
-      "Data:",
-      "Orario:",
-      "Numero ospiti (min. 50):",
-      "Nome:",
-      "Note:",
-    ].join("\n");
-
+    const msg = cta.whatsappTemplates.masseria ?? CTA_FALLBACK.whatsappTemplates.masseria;
     return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
-  }, [settings.data]);
+  }, [cta.whatsappTemplates.masseria, digits]);
 
-  const polaroids: PolaroidItem[] = useMemo(
-    () => [
-      {
-        src: "https://picsum.photos/seed/eden-masseria-1/1200/900",
-        alt: "Vista esterna della masseria al tramonto",
-        caption: "Arrivo",
-        tiltClass: "tilt-1",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-2/900/1200",
-        alt: "Dettaglio di luci calde su un viale",
-        caption: "Percorso",
-        tiltClass: "tilt-2",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-3/1200/900",
-        alt: "Tavolo imperiale per evento privato",
-        caption: "Allestimento",
-        tiltClass: "tilt-3",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-4/1000/1200",
-        alt: "Dettaglio di fiori e mise en place",
-        caption: "Dettagli",
-        tiltClass: "tilt-4",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-5/1400/900",
-        alt: "Corte interna illuminata di sera",
-        caption: "Corte",
-        tiltClass: "tilt-5",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-6/1200/900",
-        alt: "Calici e bottiglie su un banco",
-        caption: "Brindisi",
-        tiltClass: "tilt-6",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-7/1200/900",
-        alt: "Angolo lounge con sedute e luci soffuse",
-        caption: "Lounge",
-        tiltClass: "tilt-2",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-8/900/1200",
-        alt: "Dettaglio architettura in pietra",
-        caption: "Pietra",
-        tiltClass: "tilt-3",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-9/1200/900",
-        alt: "Scorcio di giardino mediterraneo",
-        caption: "Giardino",
-        tiltClass: "tilt-4",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-10/1200/900",
-        alt: "Area evento con luci sospese",
-        caption: "Notte",
-        tiltClass: "tilt-1",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-11/1400/900",
-        alt: "Dettaglio di un portone antico",
-        caption: "Ingresso",
-        tiltClass: "tilt-5",
-      },
-      {
-        src: "https://picsum.photos/seed/eden-masseria-12/1200/900",
-        alt: "Momento conviviale con persone che brindano",
-        caption: "Evento",
-        tiltClass: "tilt-6",
-      },
-    ],
-    [],
-  );
+  const hero = pickSection<MasseriaHeroContent>(blocks.data, "hero", MASSERIA_FALLBACK.hero);
+  const gallery = pickSection<{ items: PolaroidItem[] }>(blocks.data, "gallery", MASSERIA_FALLBACK.gallery);
+  const note = pickSection<{ text: string }>(blocks.data, "note", MASSERIA_FALLBACK.note);
+
+  const polaroids = gallery.items;
+
+  const heroPrimaryLabel = cta.heroButtons.masseria.primary.label;
+  const heroPrimaryHref = cta.heroButtons.masseria.primary.href;
+  const heroSecondaryLabel = cta.heroButtons.masseria.secondary.label;
+  const heroSecondaryHref = cta.heroButtons.masseria.secondary.href;
+
+  const primaryHref = heroPrimaryHref === "whatsapp" ? waUrl : heroPrimaryHref;
 
   return (
     <div className="eden-theme">
@@ -160,14 +92,14 @@ export default function MasseriaPetrullo() {
                 <span className="sr-only">Masseria Petrullo</span>
                 <img className="masseria-title-image" src={masseriaTitle} alt="Masseria Petrullo" loading="eager" decoding="async" />
               </h1>
-              <p className="masseria-desc">Spazi aperti, luci calde e dettagli curati. Un luogo pensato per eventi privati.</p>
+              <p className="masseria-desc">{hero.description}</p>
 
               <div className="masseria-cta-row">
-                <a className="masseria-cta" href={waUrl} target="_blank" rel="noreferrer">
-                  Richiedi info su WhatsApp
+                <a className="masseria-cta" href={primaryHref} target="_blank" rel="noreferrer">
+                  {heroPrimaryLabel}
                 </a>
-                <a className="masseria-cta masseria-cta--ghost" href="#gallery">
-                  Vedi galleria
+                <a className="masseria-cta masseria-cta--ghost" href={heroSecondaryHref}>
+                  {heroSecondaryLabel}
                 </a>
               </div>
             </div>
@@ -185,14 +117,18 @@ export default function MasseriaPetrullo() {
             </div>
 
             <div className="masseria-polaroid-grid reveal-stagger">
-              {polaroids.map((p, idx) => (
-                <figure key={`${p.src}-${idx}`} className={`masseria-polaroid stagger-item ${p.tiltClass}`.trim()}>
-                  <div className="masseria-polaroid-media">
-                    <img src={p.src} alt={p.alt} loading="lazy" />
-                  </div>
-                  {p.caption ? <figcaption className="masseria-polaroid-caption">{p.caption}</figcaption> : null}
-                </figure>
-              ))}
+              {polaroids.map((p, idx) => {
+                const src = resolveMediaRef(
+                  p.assetId ? ({ assetId: p.assetId } as any) : p.src ? ({ src: p.src } as any) : null,
+                  assetsById,
+                );
+                return (
+                  <figure key={`${p.alt}-${idx}`} className={`masseria-polaroid stagger-item ${p.tiltClass}`.trim()}>
+                    <div className="masseria-polaroid-media">{src ? <img src={src} alt={p.alt} loading="lazy" /> : null}</div>
+                    {p.caption ? <figcaption className="masseria-polaroid-caption">{p.caption}</figcaption> : null}
+                  </figure>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -200,7 +136,7 @@ export default function MasseriaPetrullo() {
         {/* NOTA */}
         <section className="masseria-note reveal-on-scroll reveal-fantasy" aria-label="Condizioni eventi">
           <div className="eden-shell">
-            <p className="masseria-note-text">Solo per eventi privati. Minimo 50 persone.</p>
+            <p className="masseria-note-text">{note.text}</p>
           </div>
         </section>
 
