@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { useSiteSettings } from "@/hooks/content/useSiteSettings";
 import { useSocialLinks } from "@/hooks/content/useSocialLinks";
@@ -19,6 +23,28 @@ function jsonSafeParse(text: string) {
   } catch (e: any) {
     return { ok: false as const, error: e?.message ?? "JSON non valido" };
   }
+}
+
+type AdminUserRow = {
+  id: string;
+  email: string | null;
+  created_at: string;
+  email_confirmed_at: string | null;
+};
+
+async function listUsers() {
+  const { data, error } = await supabase.functions.invoke("admin-users", { method: "GET" });
+  if (error) throw error;
+  return (data?.users ?? []) as AdminUserRow[];
+}
+
+async function deleteUser(userId: string) {
+  const { data, error } = await supabase.functions.invoke("admin-users", {
+    method: "DELETE",
+    body: { userId },
+  });
+  if (error) throw error;
+  if (!data?.ok) throw new Error("Delete failed");
 }
 
 export default function AdminDashboard() {
@@ -58,6 +84,35 @@ export default function AdminDashboard() {
       2,
     ),
   );
+
+  // Utenti
+  const [userSearch, setUserSearch] = useState("");
+  const [selectedUserIds, setSelectedUserIds] = useState<Record<string, boolean>>({});
+
+  const usersQuery = useQuery({ queryKey: ["admin_users"], queryFn: listUsers });
+
+  const deleteMany = useMutation({
+    mutationFn: async (ids: string[]) => {
+      for (const id of ids) await deleteUser(id);
+    },
+    onSuccess: async () => {
+      toast({ title: "Utenti cancellati" });
+      setSelectedUserIds({});
+      await qc.invalidateQueries({ queryKey: ["admin_users"] });
+    },
+    onError: (e: any) => {
+      toast({ title: "Errore", description: e?.message ?? "Operazione fallita", variant: "destructive" });
+    },
+  });
+
+  const visibleUsers = useMemo(() => {
+    const q = userSearch.trim().toLowerCase();
+    const all = usersQuery.data ?? [];
+    if (!q) return all;
+    return all.filter((u) => (u.email ?? "").toLowerCase().includes(q) || u.id.toLowerCase().includes(q));
+  }, [userSearch, usersQuery.data]);
+
+  const selectedIds = useMemo(() => Object.keys(selectedUserIds).filter((id) => selectedUserIds[id]), [selectedUserIds]);
 
   // hydrate from backend (best-effort)
   useMemo(() => {
@@ -125,7 +180,9 @@ export default function AdminDashboard() {
 
   async function addSocial() {
     try {
-      const { error } = await supabase.from("social_links").insert({ platform: "instagram", url: "https://instagram.com/", order: 0, enabled: true });
+      const { error } = await supabase
+        .from("social_links")
+        .insert({ platform: "instagram", url: "https://instagram.com/", order: 0, enabled: true });
       if (error) throw error;
       await qc.invalidateQueries({ queryKey: ["social_links"] });
     } catch (e: any) {
@@ -199,6 +256,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="footer">Footer</TabsTrigger>
             <TabsTrigger value="social">Social</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="users">Utenti</TabsTrigger>
           </TabsList>
 
           <TabsContent value="settings">
@@ -221,9 +279,7 @@ export default function AdminDashboard() {
                 <div className="text-sm font-medium">Link Maps</div>
                 <Input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} />
               </div>
-              <Button onClick={saveSettings}>
-                Salva contatti
-              </Button>
+              <Button onClick={saveSettings}>Salva contatti</Button>
             </div>
           </TabsContent>
 
@@ -268,11 +324,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="sm:col-span-1">
                       <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={s.enabled}
-                          onChange={(e) => updateSocial(s.id, { enabled: e.target.checked })}
-                        />
+                        <input type="checkbox" checked={s.enabled} onChange={(e) => updateSocial(s.id, { enabled: e.target.checked })} />
                         On
                       </label>
                     </div>
@@ -311,10 +363,119 @@ export default function AdminDashboard() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {(media.data ?? []).slice(0, 20).map((m) => (
                   <div key={m.id} className="rounded-md border p-3">
-                    <div className="text-xs text-muted-foreground break-all">{m.bucket}/{m.path}</div>
+                    <div className="text-xs text-muted-foreground break-all">
+                      {m.bucket}/{m.path}
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <div className="rounded-lg border bg-card p-6 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="text-sm font-medium">Utenti</div>
+                  <div className="text-sm text-muted-foreground">Lista utenti + cancellazione selettiva (solo admin).</div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                  <Input
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Cerca per email o ID"
+                    className="sm:w-[320px]"
+                  />
+
+                  <Button variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["admin_users"] })} disabled={usersQuery.isFetching}>
+                    {usersQuery.isFetching ? "Aggiorno…" : "Aggiorna"}
+                  </Button>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" disabled={selectedIds.length === 0 || deleteMany.isPending}>
+                        Cancella selezionati ({selectedIds.length})
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confermi la cancellazione?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Questa azione elimina definitivamente gli account selezionati. Non puoi cancellare il tuo account.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMany.mutate(selectedIds)}
+                          disabled={deleteMany.isPending}
+                        >
+                          {deleteMany.isPending ? "Cancello…" : "Conferma"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+
+              {usersQuery.isError && (
+                <div className="rounded-md border bg-muted/30 p-4 text-sm">
+                  Errore caricamento utenti: {(usersQuery.error as any)?.message ?? ""}
+                </div>
+              )}
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[52px]"></TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Conferma</TableHead>
+                    <TableHead>Creato</TableHead>
+                    <TableHead>User ID</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(visibleUsers ?? []).map((u) => {
+                    const checked = Boolean(selectedUserIds[u.id]);
+                    const confirmed = Boolean(u.email_confirmed_at);
+                    return (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => setSelectedUserIds((s) => ({ ...s, [u.id]: Boolean(v) }))}
+                            aria-label={`Seleziona ${u.email ?? u.id}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{u.email ?? "(senza email)"}</TableCell>
+                        <TableCell>{confirmed ? "Confermata" : "Non confermata"}</TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(u.created_at).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <button
+                            type="button"
+                            className="font-mono text-xs underline underline-offset-4"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(u.id);
+                              toast({ title: "Copiato" });
+                            }}
+                          >
+                            {u.id}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+
+                  {visibleUsers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                        Nessun utente trovato.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </TabsContent>
         </Tabs>
