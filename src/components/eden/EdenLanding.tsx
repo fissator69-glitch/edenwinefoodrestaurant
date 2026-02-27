@@ -40,102 +40,102 @@ type MenuPercorso = {
 };
 
 const CUCINA_PERCORSI: MenuPercorso[] = [
+{
+  key: "terra",
+  label: "Percorso Terra",
+  title: "MENÙ TERRA",
+  price: 60,
+  sections: [
   {
-    key: "terra",
-    label: "Percorso Terra",
-    title: "MENÙ TERRA",
-    price: 60,
-    sections: [
-      {
-        title: "ANTIPASTI",
-        items: [
-          "Friselle pugliesi",
-          "Taglieri di salumi e formaggi con le sue confetture e petto line",
-          "Burratine",
-          "Verdure pastellate",
-          "Arrosticini",
-          "Gateau di patate",
-          "Saltimbocca al ragù",
-          "Polpettine cacio e pepe"
-        ]
-      },
-      { title: "PRIMO DA SCEGLIERE" },
-      { title: "SECONDO DA SCEGLIERE" },
-      { title: "FRUTTA" }
-    ],
-    notes: [
-      {
-        label: "BEVANDE ANALCOLICHE INCLUSE",
-        items: ["2 Bottiglie di Prosecco", "2 Caraffe di vino locale"]
-      },
-      { label: "OMAGGIO OGNI 10 PERSONE" }
-    ]
+    title: "ANTIPASTI",
+    items: [
+    "Friselle pugliesi",
+    "Taglieri di salumi e formaggi con le sue confetture e petto line",
+    "Burratine",
+    "Verdure pastellate",
+    "Arrosticini",
+    "Gateau di patate",
+    "Saltimbocca al ragù",
+    "Polpettine cacio e pepe"]
+
   },
+  { title: "PRIMO DA SCEGLIERE" },
+  { title: "SECONDO DA SCEGLIERE" },
+  { title: "FRUTTA" }],
+
+  notes: [
   {
-    key: "mare",
-    label: "Percorso Mare",
-    title: "MENÙ MARE",
-    price: 70,
-    sections: [
-      {
-        title: "ANTIPASTI",
-        items: [
-          "Bruschette con stracciatella e alici del Cantabrico e pomodorino confit",
-          "Carpaccio di salmone marinato alla barbabietola",
-          "Tartare di tonno al lime e semi di sesamo",
-          "Baccalà fritto con maionese al pepe nero",
-          "Gamberi in tempura con salsa agrodolce",
-          "Cestini kataifi con gamberi in salsa rosa",
-          "Insalata di polpo e tagliatella con verdure",
-          "Moscardini in “rosso” su purea di ceci"
-        ]
-      },
-      { title: "1 PRIMO DA SCEGLIERE" },
-      { title: "1 SECONDO DA SCEGLIERE" },
-      { title: "EXTRA", items: ["Sorbetto al limone", "Frutta"] }
-    ],
-    notes: [
-      { label: "1 bottiglia di prosecco o vino locale in caraffa ogni 10 persone" },
-      { label: "Bevande analcoliche OMAGGIO" },
-      {
-        label: "Sala allestita con fiori freschi, oggettistica, candele e tutto ciò che l’EDEN può offrirvi per rendere la sala elegante ed accogliente…"
-      },
-      { label: "Sala riservata per eventi con un minimo di 40 persone, bambini esclusi" },
-      { label: "Al dì sotto di quel numero la sala riservata ha un costo fitto location 300 €" }
-    ]
+    label: "BEVANDE ANALCOLICHE INCLUSE",
+    items: ["2 Bottiglie di Prosecco", "2 Caraffe di vino locale"]
   },
+  { label: "OMAGGIO OGNI 10 PERSONE" }]
+
+},
+{
+  key: "mare",
+  label: "Percorso Mare",
+  title: "MENÙ MARE",
+  price: 70,
+  sections: [
   {
-    key: "scoperta",
-    label: "Percorso Scoperta",
-    title: "L’APERITIVO",
-    price: 40,
-    priceExtra: "con l’aggiunta di 10 € a persona:",
-    sections: [
-      {
-        title: "MINITRECCE ASSORTITE",
-        items: [
-          "PANINETTI COLORATI FARCITI",
-          "BAO FANTASIA",
-          "TRAMEZZINI",
-          "GAMBERI IN TEMPURA CON SALSA AGRODOLCE",
-          "VERDURE IN PASTELLA",
-          "ARROSTICINI DI POLLO",
-          "PANZEROTTINI"
-        ]
-      },
-      { title: "Taglieri di salumi e formaggi burratini" },
-      { title: "", items: ["SALTIMBOCCA AL RAGÙ", "POLPETTINE CACIO E PEPE"] },
-      { title: "Un primo piatto da scegliere" }
-    ],
-    notes: [
-      { label: "1 bottiglia di prosecco o vino locale in caraffa ogni 10 persone — OMAGGIO" },
-      { label: "Bevande analcoliche — OMAGGIO" },
-      { label: "Sala allestita con fiori freschi, oggettistica, candele e tutto ciò che l’EDEN può offrirvi per rendere la sala elegante ed accogliente…" },
-      { label: "Sala riservata per eventi con un minimo di 40 persone, bambini esclusi" },
-      { label: "Al dì sotto di quel numero la sala riservata ha un costo fitto location 300 €" }
-    ]
-  }
-];
+    title: "ANTIPASTI",
+    items: [
+    "Bruschette con stracciatella e alici del Cantabrico e pomodorino confit",
+    "Carpaccio di salmone marinato alla barbabietola",
+    "Tartare di tonno al lime e semi di sesamo",
+    "Baccalà fritto con maionese al pepe nero",
+    "Gamberi in tempura con salsa agrodolce",
+    "Cestini kataifi con gamberi in salsa rosa",
+    "Insalata di polpo e tagliatella con verdure",
+    "Moscardini in “rosso” su purea di ceci"]
+
+  },
+  { title: "1 PRIMO DA SCEGLIERE" },
+  { title: "1 SECONDO DA SCEGLIERE" },
+  { title: "EXTRA", items: ["Sorbetto al limone", "Frutta"] }],
+
+  notes: [
+  { label: "1 bottiglia di prosecco o vino locale in caraffa ogni 10 persone" },
+  { label: "Bevande analcoliche OMAGGIO" },
+  {
+    label: "Sala allestita con fiori freschi, oggettistica, candele e tutto ciò che l’EDEN può offrirvi per rendere la sala elegante ed accogliente…"
+  },
+  { label: "Sala riservata per eventi con un minimo di 40 persone, bambini esclusi" },
+  { label: "Al dì sotto di quel numero la sala riservata ha un costo fitto location 300 €" }]
+
+},
+{
+  key: "scoperta",
+  label: "Percorso Scoperta",
+  title: "L’APERITIVO",
+  price: 40,
+  priceExtra: "con l’aggiunta di 10 € a persona:",
+  sections: [
+  {
+    title: "MINITRECCE ASSORTITE",
+    items: [
+    "PANINETTI COLORATI FARCITI",
+    "BAO FANTASIA",
+    "TRAMEZZINI",
+    "GAMBERI IN TEMPURA CON SALSA AGRODOLCE",
+    "VERDURE IN PASTELLA",
+    "ARROSTICINI DI POLLO",
+    "PANZEROTTINI"]
+
+  },
+  { title: "Taglieri di salumi e formaggi burratini" },
+  { title: "", items: ["SALTIMBOCCA AL RAGÙ", "POLPETTINE CACIO E PEPE"] },
+  { title: "Un primo piatto da scegliere" }],
+
+  notes: [
+  { label: "1 bottiglia di prosecco o vino locale in caraffa ogni 10 persone — OMAGGIO" },
+  { label: "Bevande analcoliche — OMAGGIO" },
+  { label: "Sala allestita con fiori freschi, oggettistica, candele e tutto ciò che l’EDEN può offrirvi per rendere la sala elegante ed accogliente…" },
+  { label: "Sala riservata per eventi con un minimo di 40 persone, bambini esclusi" },
+  { label: "Al dì sotto di quel numero la sala riservata ha un costo fitto location 300 €" }]
+
+}];
+
 
 type GalleryFilter = "all" | "food" | "location" | "events";
 
@@ -1032,6 +1032,7 @@ export default function EdenLanding() {
 
 
 
+
             // ignore: if sessionStorage is blocked/unavailable, fallback is showing intro again
           }setIntroDone(true);}} />}
       {/* Sfondo continuo: canvas + aurora */}
@@ -1083,9 +1084,8 @@ export default function EdenLanding() {
               <a href="#eventi">Eventi</a>
               <a href="#recensioni">Recensioni</a>
               <a href="#contatti">Contatti</a>
-              <a className="header-nav-cta" href="tel:+390805248160">
-                Prenota
-              </a>
+              
+
               <a className="header-nav-cta header-nav-cta--wa" href={headerWaUrl} target="_blank" rel="noreferrer">
                 WhatsApp
               </a>
@@ -1271,38 +1271,38 @@ export default function EdenLanding() {
               </div>
 
               <div className="tab-row" role="tablist" aria-label="Percorsi degustazione">
-                {CUCINA_PERCORSI.map((p) => (
-                  <button
-                    key={p.key}
-                    className={`tab-btn ${activeTab === p.key ? "active" : ""}`}
-                    data-tab={p.key}
-                    role="tab"
-                    aria-selected={activeTab === p.key}
-                    aria-controls={`panel-${p.key}`}
-                    onClick={() => setActiveTab(p.key)}
-                    type="button">
+                {CUCINA_PERCORSI.map((p) =>
+                <button
+                  key={p.key}
+                  className={`tab-btn ${activeTab === p.key ? "active" : ""}`}
+                  data-tab={p.key}
+                  role="tab"
+                  aria-selected={activeTab === p.key}
+                  aria-controls={`panel-${p.key}`}
+                  onClick={() => setActiveTab(p.key)}
+                  type="button">
                     <span
-                      className={`tab-dot ${p.key === "mare" ? "tab-dot-mare" : p.key === "terra" ? "tab-dot-terra" : "tab-dot-scoperta"}`}
-                      aria-hidden="true"
-                    />
+                    className={`tab-dot ${p.key === "mare" ? "tab-dot-mare" : p.key === "terra" ? "tab-dot-terra" : "tab-dot-scoperta"}`}
+                    aria-hidden="true" />
+
                     {p.label}
                   </button>
-                ))}
+                )}
                 <div className="tab-line" aria-hidden="true" />
               </div>
 
-              {CUCINA_PERCORSI.map((p) => (
-                <div
-                  key={p.key}
-                  className={`tab-panel ${activeTab === p.key ? "active" : ""} ${tabVisible && activeTab === p.key ? "visible" : ""}`}
-                  id={`panel-${p.key}`}
-                  role="tabpanel"
-                  aria-label={p.label}
-                  style={{ display: activeTab === p.key ? "block" : "none" }}>
+              {CUCINA_PERCORSI.map((p) =>
+              <div
+                key={p.key}
+                className={`tab-panel ${activeTab === p.key ? "active" : ""} ${tabVisible && activeTab === p.key ? "visible" : ""}`}
+                id={`panel-${p.key}`}
+                role="tabpanel"
+                aria-label={p.label}
+                style={{ display: activeTab === p.key ? "block" : "none" }}>
                   <div className="panel-layout">
                     <div className="panel-visual">
-                      {p.key === "terra" ? (
-                        <div className="dish-orb dish-orb-terra">
+                      {p.key === "terra" ?
+                    <div className="dish-orb dish-orb-terra">
                           <div className="dish-orb-inner">
                             <div className="dish-orb-shine" />
                             <div className="dish-orb-label">Terra</div>
@@ -1312,9 +1312,9 @@ export default function EdenLanding() {
                           <div className="orb-float-tag orb-tag-1">Antipasti</div>
                           <div className="orb-float-tag orb-tag-2">Primo</div>
                           <div className="orb-float-tag orb-tag-3">Secondo</div>
-                        </div>
-                      ) : p.key === "mare" ? (
-                        <div className="dish-orb">
+                        </div> :
+                    p.key === "mare" ?
+                    <div className="dish-orb">
                           <div className="dish-orb-inner">
                             <div className="dish-orb-shine" />
                             <div className="dish-orb-label">Mare</div>
@@ -1324,9 +1324,9 @@ export default function EdenLanding() {
                           <div className="orb-float-tag orb-tag-1">Antipasti</div>
                           <div className="orb-float-tag orb-tag-2">Primo</div>
                           <div className="orb-float-tag orb-tag-3">Secondo</div>
-                        </div>
-                      ) : (
-                        <div className="dish-orb">
+                        </div> :
+
+                    <div className="dish-orb">
                           <div className="dish-orb-inner">
                             <div className="dish-orb-shine" />
                             <div className="dish-orb-label">Scoperta</div>
@@ -1337,13 +1337,13 @@ export default function EdenLanding() {
                           <div className="orb-float-tag orb-tag-2">Taglieri</div>
                           <div className="orb-float-tag orb-tag-3">Note</div>
                         </div>
-                      )}
+                    }
                     </div>
 
                     <div className="panel-content">
                       <div
-                        className={`panel-price-badge ${p.key === "terra" ? "panel-price-badge-terra" : ""}`}
-                        aria-label={`Prezzo indicativo ${p.label}`}>
+                      className={`panel-price-badge ${p.key === "terra" ? "panel-price-badge-terra" : ""}`}
+                      aria-label={`Prezzo indicativo ${p.label}`}>
                         <span className="price-from">da</span>
                         <span className="price-big" data-target={String(p.price)}>
                           0
@@ -1352,53 +1352,53 @@ export default function EdenLanding() {
                         <span className="price-person">a persona</span>
                       </div>
 
-                      {p.key === "scoperta" && p.priceExtra ? (
-                        <div className="panel-price-extra">{p.priceExtra}</div>
-                      ) : null}
+                      {p.key === "scoperta" && p.priceExtra ?
+                    <div className="panel-price-extra">{p.priceExtra}</div> :
+                    null}
 
                       <div className="menu-head">
                         <div className="menu-title">{p.title}</div>
                       </div>
 
                       <div className="menu-sections">
-                        {p.sections.map((s, idx) => (
-                          <div key={`${p.key}-sec-${idx}`} className="menu-section" style={{ ["--i" as any]: idx }}>
+                        {p.sections.map((s, idx) =>
+                      <div key={`${p.key}-sec-${idx}`} className="menu-section" style={{ ["--i" as any]: idx }}>
                             {s.title ? <div className="menu-section-title">{s.title}</div> : null}
-                            {s.items?.length ? (
-                              <ul className="menu-bullets">
-                                {s.items.map((it, ii) => (
-                                  <li key={`${p.key}-sec-${idx}-it-${ii}`}>{it}</li>
-                                ))}
-                              </ul>
-                            ) : null}
+                            {s.items?.length ?
+                        <ul className="menu-bullets">
+                                {s.items.map((it, ii) =>
+                          <li key={`${p.key}-sec-${idx}-it-${ii}`}>{it}</li>
+                          )}
+                              </ul> :
+                        null}
                           </div>
-                        ))}
+                      )}
                       </div>
 
-                      {p.notes?.length ? (
-                        <div className="menu-notes" aria-label="Note e condizioni">
+                      {p.notes?.length ?
+                    <div className="menu-notes" aria-label="Note e condizioni">
                           <div className="menu-notes-title">NOTE / CONDIZIONI</div>
                           <ul className="menu-notes-list">
-                            {p.notes.map((n, idx) => (
-                              <li key={`${p.key}-note-${idx}`}>
+                            {p.notes.map((n, idx) =>
+                        <li key={`${p.key}-note-${idx}`}>
                                 <span className="menu-note-label">{n.label}</span>
-                                {n.items?.length ? (
-                                  <ul className="menu-note-sublist">
-                                    {n.items.map((sub, j) => (
-                                      <li key={`${p.key}-note-${idx}-sub-${j}`}>{sub}</li>
-                                    ))}
-                                  </ul>
-                                ) : null}
+                                {n.items?.length ?
+                          <ul className="menu-note-sublist">
+                                    {n.items.map((sub, j) =>
+                            <li key={`${p.key}-note-${idx}-sub-${j}`}>{sub}</li>
+                            )}
+                                  </ul> :
+                          null}
                               </li>
-                            ))}
+                        )}
                           </ul>
-                        </div>
-                      ) : null}
+                        </div> :
+                    null}
 
                       <a
-                        href="#contatti"
-                        className={`panel-cta ${p.key === "terra" ? "panel-cta-terra" : ""}`}
-                      >
+                      href="#contatti"
+                      className={`panel-cta ${p.key === "terra" ? "panel-cta-terra" : ""}`}>
+
                         Prenota {p.label.toLowerCase()} <span className="cta-arrow" aria-hidden="true">
                           →
                         </span>
@@ -1406,7 +1406,7 @@ export default function EdenLanding() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </section>
 
