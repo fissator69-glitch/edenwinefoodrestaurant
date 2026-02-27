@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 540" width="240" height="540">
+  <title>Wheat leaf source (EDEN)</title>
+  <!-- Transparent background; keep greens saturated so EDEN's saturation-key doesn't erase the blade. -->
+  <defs>
+    <linearGradient id="bladeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8CFFB9"/>
+      <stop offset="0.55" stop-color="#41D27E"/>
+      <stop offset="1" stop-color="#16934F"/>
+    </linearGradient>
+    <linearGradient id="midribGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E9FFF3" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#41D27E" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Long, slender wheat blade with a slight twist -->
+  <path
+    d="M128 18
+       C104 54 86 102 82 158
+       C74 256 110 342 132 408
+       C148 454 148 498 134 530
+       C168 486 188 438 196 378
+       C210 282 182 202 158 146
+       C144 112 138 72 128 18 Z"
+    fill="url(#bladeGrad)"
+    fill-rule="evenodd"/>
+
+  <!-- Midrib highlight (still saturated / not gray) -->
+  <path
+    d="M132 46
+       C122 92 118 140 124 192
+       C132 260 154 330 156 392
+       C158 442 150 486 136 514"
+    fill="none"
+    stroke="url(#midribGrad)"
+    stroke-width="12"
+    stroke-linecap="round"
+    opacity="0.9"/>
+
+  <!-- Secondary vein -->
+  <path
+    d="M104 176 C114 224 130 270 136 312 C142 354 142 394 134 436"
+    fill="none"
+    stroke="#D6FFE8"
+    stroke-opacity="0.22"
+    stroke-width="8"
+    stroke-linecap="round"/>
+</svg>

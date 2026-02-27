@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 540" width="240" height="540">
+  <title>Tulip leaf source (EDEN)</title>
+  <!-- Transparent background; use saturated greens so EDEN's saturation-key doesn't erase the leaf. -->
+  <defs>
+    <linearGradient id="leafGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#39C27A"/>
+      <stop offset="1" stop-color="#1F8E57"/>
+    </linearGradient>
+    <linearGradient id="ribGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B9F5D8" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#B9F5D8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- A simple, elegant tulip-like leaf: tall, slightly twisted, pointed tips. -->
+  <path
+    d="M120 16
+       C95 44 78 86 72 134
+       C61 216 86 296 106 362
+       C121 414 124 470 114 524
+       C155 475 179 420 192 352
+       C206 278 191 200 168 136
+       C154 96 141 56 120 16 Z"
+    fill="url(#leafGrad)"
+    fill-rule="evenodd"/>
+
+  <!-- Inner highlight/rib (still saturated enough, but adds depth) -->
+  <path
+    d="M123 40
+       C111 84 108 126 112 170
+       C117 222 136 286 140 340
+       C144 396 140 446 126 500"
+    fill="none"
+    stroke="url(#ribGrad)"
+    stroke-width="12"
+    stroke-linecap="round"
+    opacity="0.9"/>
+
+  <!-- Subtle secondary vein (keep saturation: use light mint, not gray) -->
+  <path
+    d="M96 170 C102 206 116 246 122 284 C128 324 130 360 126 402"
+    fill="none"
+    stroke="#C7F9E0"
+    stroke-opacity="0.22"
+    stroke-width="8"
+    stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 540" width="240" height="540">
+  <title>Wheat spike source — green (EDEN)</title>
+  <!-- Transparent background; keep colors saturated so EDEN's saturation-key doesn't erase the spike. -->
+  <defs>
+    <linearGradient id="wheatGreenStem" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#82E7B3"/>
+      <stop offset="0.55" stop-color="#41C67A"/>
+      <stop offset="1" stop-color="#1D8F52"/>
+    </linearGradient>
+    <linearGradient id="wheatGreenAwn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D9FFEF" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#41C67A" stop-opacity="0.16"/>
+    </linearGradient>
+    <radialGradient id="wheatGreenGlow" cx="30%" cy="10%" r="80%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.4"/>
+      <stop offset="0.35" stop-color="#BFF9DD" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#41C67A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Stem (slightly curved) -->
+  <path
+    d="M124 512
+       C120 408 122 324 126 246
+       C130 156 136 92 122 26"
+    fill="none"
+    stroke="url(#wheatGreenStem)"
+    stroke-width="10"
+    stroke-linecap="round"
+    opacity="0.9"/>
+
+  <!-- Spike body: stylized grains (slightly slimmer) -->
+  <g opacity="0.98">
+    <ellipse cx="122" cy="114" rx="20" ry="15" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="108" cy="136" rx="18" ry="14" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="136" cy="136" rx="18" ry="14" fill="url(#wheatGreenStem)"/>
+
+    <ellipse cx="122" cy="160" rx="21" ry="15" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="104" cy="186" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="140" cy="186" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+
+    <ellipse cx="122" cy="214" rx="21" ry="15" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="106" cy="242" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="138" cy="242" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+
+    <ellipse cx="122" cy="270" rx="21" ry="15" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="108" cy="300" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="136" cy="300" rx="19" ry="14" fill="url(#wheatGreenStem)"/>
+
+    <ellipse cx="122" cy="330" rx="20" ry="14" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="112" cy="360" rx="18" ry="13" fill="url(#wheatGreenStem)"/>
+    <ellipse cx="132" cy="360" rx="18" ry="13" fill="url(#wheatGreenStem)"/>
+
+    <ellipse cx="122" cy="392" rx="18" ry="13" fill="url(#wheatGreenStem)"/>
+  </g>
+
+  <!-- Awns -->
+  <g stroke="url(#wheatGreenAwn)" stroke-width="4" stroke-linecap="round" opacity="0.72">
+    <path d="M106 108 C88 98 74 84 60 70"/>
+    <path d="M138 108 C156 98 170 84 184 70"/>
+
+    <path d="M90 156 C74 146 62 132 50 118"/>
+    <path d="M154 156 C170 146 182 132 194 118"/>
+
+    <path d="M90 226 C76 216 66 202 56 186"/>
+    <path d="M154 226 C168 216 178 202 188 186"/>
+
+    <path d="M96 308 C84 296 74 280 66 264"/>
+    <path d="M148 308 C160 296 170 280 178 264"/>
+
+    <path d="M106 392 C98 378 92 360 86 342"/>
+    <path d="M138 392 C146 378 152 360 158 342"/>
+  </g>
+
+  <!-- Soft highlight -->
+  <path
+    d="M152 96
+       C168 170 164 270 148 356
+       C138 410 130 454 118 510"
+    fill="none"
+    stroke="url(#wheatGreenGlow)"
+    stroke-width="18"
+    stroke-linecap="round"
+    opacity="0.5"/>
+</svg>
