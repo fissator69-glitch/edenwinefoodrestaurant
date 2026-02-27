@@ -3,6 +3,7 @@ import "@/styles/eden.css";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import EdenTransitionLink from "@/components/eden/EdenTransitionLink";
 import EdenFallingLeavesCanvas from "@/components/eden/EdenFallingLeavesCanvas";
+import locandaTitle from "@/assets/locanda-title.png";
 
 type MenuItem = {
   name: string;
@@ -234,8 +235,9 @@ export default function LocandaEden() {
           <div className="locanda-hero-inner">
             <div className="locanda-hero-content subpage-hero-enter">
               <img className="hero-logo" src="/eden/eden-hero-logo.png" alt="EDEN" loading="eager" />
-              <h1 id="locanda-hero-title" className="locanda-title">
-                LOCANDA
+              <h1 id="locanda-hero-title" className="locanda-title locanda-title--image">
+                <span className="sr-only">Locanda</span>
+                <img className="locanda-title-image" src={locandaTitle} alt="Locanda" loading="eager" decoding="async" />
               </h1>
               <p className="locanda-desc">
                 Cucina mediterranea contemporanea, servizio caldo e un calice scelto bene. Il tuo tavolo ti aspetta.

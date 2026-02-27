@@ -3784,6 +3784,24 @@ body.eden-lock {
   animation: lightSweep 9s linear infinite;
 }
 
+/* Locanda title rendered as image (keeps H1 semantics via sr-only text) */
+.locanda-title.locanda-title--image {
+  background: none;
+  -webkit-background-clip: initial;
+  color: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.locanda-title-image {
+  display: block;
+  margin-inline: auto;
+  height: auto;
+  width: min(780px, 92vw);
+  max-width: 100%;
+  filter: drop-shadow(0 18px 44px hsl(0 0% 0% / 0.55));
+}
+
 .locanda-desc {
   margin-top: 18px;
   max-width: 40rem;
