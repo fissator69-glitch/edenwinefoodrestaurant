@@ -1017,54 +1017,6 @@ export default function EdenLanding() {
             </div>
           </section>
 
-          {/* SEZIONI DEL SITO (ROOT) */}
-          <section id="sezioni" className="site-sections reveal-on-scroll">
-            <div className="eden-shell">
-              <div className="site-sections-kicker">Sezioni del sito</div>
-              <h2 className="site-sections-title">Tutto quello che trovi qui</h2>
-
-              <div className="site-sections-grid">
-                <div className="site-sections-card">
-                  <div className="site-sections-card-head">
-                    <h3>EDEN</h3>
-                    <span className="site-sections-card-tag">Pagina principale</span>
-                  </div>
-                  <div className="site-sections-links" aria-label="Sezioni della pagina EDEN">
-                    <a href="#hero">Hero</a>
-                    <EdenTransitionLink to="/eden">Eden</EdenTransitionLink>
-                    <a href="#storia">Storia</a>
-                    <EdenTransitionLink to="/cucina">Cucina</EdenTransitionLink>
-                    <EdenTransitionLink to="/gallery">Gallery</EdenTransitionLink>
-                    <EdenTransitionLink to="/eventi">Eventi</EdenTransitionLink>
-                    <EdenTransitionLink to="/recensioni">Recensioni</EdenTransitionLink>
-                    <EdenTransitionLink to="/contatti">Contatti</EdenTransitionLink>
-                  </div>
-                </div>
-
-                <div className="site-sections-card">
-                  <div className="site-sections-card-head">
-                    <h3>LOCANDA EDEN</h3>
-                    <span className="site-sections-card-tag">Pagina dedicata</span>
-                  </div>
-                  <p className="site-sections-desc">Menù, gallery e informazioni della Locanda.</p>
-                  <EdenTransitionLink to="/locanda-eden" className="site-sections-cta">
-                    Vai alla Locanda
-                  </EdenTransitionLink>
-                </div>
-
-                <div className="site-sections-card">
-                  <div className="site-sections-card-head">
-                    <h3>MASSERIA PETRULLO</h3>
-                    <span className="site-sections-card-tag">Pagina dedicata</span>
-                  </div>
-                  <p className="site-sections-desc">Spazi, gallery e dettagli per eventi privati.</p>
-                  <EdenTransitionLink to="/masseria-petrullo" className="site-sections-cta">
-                    Vai alla Masseria
-                  </EdenTransitionLink>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* BLOCCO 2 · SEZIONE EDEN */}
           <section id="eden" className="eden-section reveal-on-scroll">
