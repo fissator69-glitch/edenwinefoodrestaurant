@@ -960,16 +960,12 @@ export default function EdenLanding() {
             </button>
 
             <nav id="header-nav" className="header-nav" aria-label="Navigazione EDEN">
-              <a href="#eden">Eden</a>
-              <a href="#cucina">Cucina</a>
-              <a href="#gallery">Gallery</a>
-              <a href="#eventi">Eventi</a>
-              <a href="#recensioni">Recensioni</a>
-              <a href="#contatti">Contatti</a>
-              
-
-              
-
+              <EdenTransitionLink to="/eden">Eden</EdenTransitionLink>
+              <EdenTransitionLink to="/cucina">Cucina</EdenTransitionLink>
+              <EdenTransitionLink to="/gallery">Gallery</EdenTransitionLink>
+              <EdenTransitionLink to="/eventi">Eventi</EdenTransitionLink>
+              <EdenTransitionLink to="/recensioni">Recensioni</EdenTransitionLink>
+              <EdenTransitionLink to="/contatti">Contatti</EdenTransitionLink>
             </nav>
 
             <div className="header-actions" aria-label="Contatti e prenotazioni">
@@ -1035,13 +1031,13 @@ export default function EdenLanding() {
                   </div>
                   <div className="site-sections-links" aria-label="Sezioni della pagina EDEN">
                     <a href="#hero">Hero</a>
-                    <a href="#eden">Eden</a>
+                    <EdenTransitionLink to="/eden">Eden</EdenTransitionLink>
                     <a href="#storia">Storia</a>
-                    <a href="#cucina">Cucina</a>
-                    <a href="#gallery">Gallery</a>
-                    <a href="#eventi">Eventi</a>
-                    <a href="#recensioni">Recensioni</a>
-                    <a href="#contatti">Contatti</a>
+                    <EdenTransitionLink to="/cucina">Cucina</EdenTransitionLink>
+                    <EdenTransitionLink to="/gallery">Gallery</EdenTransitionLink>
+                    <EdenTransitionLink to="/eventi">Eventi</EdenTransitionLink>
+                    <EdenTransitionLink to="/recensioni">Recensioni</EdenTransitionLink>
+                    <EdenTransitionLink to="/contatti">Contatti</EdenTransitionLink>
                   </div>
                 </div>
 
