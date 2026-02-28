@@ -1077,45 +1077,55 @@ export default function EdenLanding() {
           {/* BLOCCO 2B · STORIA DELL'EDEN */}
           <section id="storia" className="story-section reveal-on-scroll">
             <div className="story-shell">
-              <div className="story-grid">
-                <div className="story-copy">
-                  <div className="story-kicker">La storia</div>
-                  <h2 className="story-title">
-                    Eden nasce da una stanza in pietra
-                    <br />
-                    <em>e da una promessa.</em>
-                  </h2>
-                  <div className="story-body">
-                    <p>
-                      Prima di essere un ristorante, Eden è stato un&rsquo;intenzione: prendere la solidità della pietra pugliese e
-                      vestirla di luce. Un luogo raccolto, dove il tempo rallenta e l&rsquo;attenzione torna alle cose essenziali.
-                    </p>
-                    <p>
-                      Nel tempo, quella stanza è diventata una sala, poi un rito: tavoli curati, calore umano, sapori
-                      mediterranei. Eden è il posto in cui si entra per cenare &mdash; e si resta per celebrare.
-                    </p>
-                    <p>
-                      Oggi raccontiamo la Puglia con due linguaggi: l&rsquo;ambiente (pietra, volte, verde) e il piatto (materie
-                      prime, cotture, dettagli). Il resto lo fa la compagnia: chi scegli di portare con te.
-                    </p>
-                  </div>
-                </div>
+              <div className="story-book" role="presentation" aria-hidden="true" />
 
-                <div className="story-chapters reveal-stagger" aria-label="Capitoli della storia di Eden">
-                  <div className="chapter-card stagger-item">
-                    <div className="chapter-num">01</div>
-                    <div className="chapter-title">La pietra</div>
-                    <div className="chapter-text">Un interno autentico, scolpito dal territorio. Eleganza senza rigidità.</div>
+              <div className="story-book-inner">
+                <div className="story-grid">
+                  <div className="story-copy">
+                    <div className="story-kicker">Libro dell’Eden</div>
+                    <h2 className="story-title">
+                      Un giardino nato nella pietra,
+                      <br />
+                      <em>dove la luce impara a restare.</em>
+                    </h2>
+
+                    <div className="story-ornament" aria-hidden="true" />
+
+                    <div className="story-body" aria-label="Storia di Eden">
+                      <p className="story-dropcap">
+                        C&rsquo;è un momento, appena varcata la soglia, in cui il mondo si abbassa di volume. La pietra respira, le
+                        volte raccolgono le voci, e ogni cosa sembra trovare il proprio posto: un calice, una candela, una mano
+                        che cerca l&rsquo;altra.
+                      </p>
+                      <p>
+                        Eden nasce così: come una stanza di Puglia vestita d&rsquo;eleganza, senza perdere la sua verità.
+                        Un&rsquo;intenzione precisa &mdash; far sentire chi arriva al sicuro, celebrato, visto.
+                        Il tempo qui non corre: si posa.
+                      </p>
+                      <p>
+                        Poi viene il rito. La cucina porta in tavola il Mediterraneo con rispetto e desiderio: materie prime,
+                        cotture pulite, dettagli che brillano appena. E tra un brindisi e una risata, Eden diventa ciò che
+                        promette: un luogo dove non si viene solo a cenare, ma a ricordare.
+                      </p>
+                    </div>
                   </div>
-                  <div className="chapter-card stagger-item">
-                    <div className="chapter-num">02</div>
-                    <div className="chapter-title">La luce</div>
-                    <div className="chapter-text">Atmosfera calda, dettagli perlacei, un ritmo che invita a restare.</div>
-                  </div>
-                  <div className="chapter-card stagger-item">
-                    <div className="chapter-num">03</div>
-                    <div className="chapter-title">Il rito</div>
-                    <div className="chapter-text">Cene, eventi, brindisi: un posto che si modella sulle tue occasioni.</div>
+
+                  <div className="story-chapters reveal-stagger" aria-label="Capitoli del Libro dell’Eden">
+                    <div className="chapter-card stagger-item">
+                      <div className="chapter-num">I</div>
+                      <div className="chapter-title">La pietra</div>
+                      <div className="chapter-text">Antica e gentile: custodisce il calore, addolcisce il rumore, rende tutto più vero.</div>
+                    </div>
+                    <div className="chapter-card stagger-item">
+                      <div className="chapter-num">II</div>
+                      <div className="chapter-title">La luce</div>
+                      <div className="chapter-text">Un perla-dorato che accarezza i dettagli. Non illumina: invita.</div>
+                    </div>
+                    <div className="chapter-card stagger-item">
+                      <div className="chapter-num">III</div>
+                      <div className="chapter-title">Il rito</div>
+                      <div className="chapter-text">Tavole curate, sapori netti, brindisi lenti: la festa prende forma, come doveva.</div>
+                    </div>
                   </div>
                 </div>
               </div>
